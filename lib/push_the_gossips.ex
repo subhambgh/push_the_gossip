@@ -1,7 +1,7 @@
-defmodule PushTheGossips3 do
+
+defmodule PushTheGossips do
+
   @moduledoc """
   Documentation for PushTheGossips.
   """
-
-
 end
