@@ -1,8 +1,8 @@
 defmodule KV.Supervisor do
   use Supervisor
 
-  def start_link(opts) do
-    Supervisor.start_link(__MODULE__, :ok, opts)
+  def start_link() do
+    Supervisor.start_link(__MODULE__, :ok)
   end
 
   @impl true
