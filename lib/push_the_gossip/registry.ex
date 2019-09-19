@@ -66,8 +66,9 @@ defmodule KV.Registry do
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
+  def handle_info({:DOWN, ref, :process, pid, _reason}, {names, refs}) do
     # handle failure according to the reason
+    #IO.puts("killed")
     {name, refs} = Map.pop(refs, ref)
     names = Map.delete(names, name)
     {:noreply, {names, refs}}
