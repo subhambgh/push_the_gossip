@@ -37,7 +37,7 @@ defmodule KV.Registry do
 
  def gossip_full(numNodes) do
    for i <- 1..numNodes do
-     GenServer.cast(KV.Registry,{:create,numNodes})
+     GenServer.cast(KV.Registry,{:create,i})
    end
  end
 
@@ -48,8 +48,8 @@ defmodule KV.Registry do
  end
 
  @impl true
- def handle_call(:getState, _from, state) do
-   {:reply, elem(state, 1), state}
+ def handle_call({:getState}, _from, state) do
+   {:reply, elem(state, 0), state}
  end
 
   @impl true
@@ -57,7 +57,7 @@ defmodule KV.Registry do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.Bucket,:start_link,10})
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.Bucket,0})
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
