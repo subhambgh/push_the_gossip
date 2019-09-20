@@ -12,9 +12,10 @@ defmodule KV.Bucket do
  end
 
  def gossip() do
-   if (GenServer.call(KV.Registry, {:getState}) !=%{}) do
-     {_,neighbour_pid} = Enum.random(GenServer.call(KV.Registry, {:getState}))
-     if (neighbour_pid != nil && neighbour_pid != self()) do
+   state = GenServer.call(KV.Registry, {:getState})
+   if (state !=%{}) do
+     {_,neighbour_pid} = Enum.random(state)
+     if (neighbour_pid != self()) do
        GenServer.cast(neighbour_pid,{:transrumor,"rumor"})
      end
    end
@@ -28,10 +29,21 @@ defmodule KV.Bucket do
    if(count < 10) do
      {:noreply, count+1}
    else
-     #{:stop, reason, new_state}
-     {:stop, :normal, count}
-     {:noreply,"killed"}
+     #send(self(), :kill_me_pls)
+     Process.exit(self(),:kill)
+     {:noreply,count+1}
    end
+ end
+
+ @impl true
+ def handle_info(:kill_me_pls, state) do
+    #{:stop, reason, new_state}
+   {:stop, :normal, state}
+ end
+
+ @impl true
+ def terminate(_, _state) do
+    IO.inspect "Look! I'm dead."
  end
 
 end
