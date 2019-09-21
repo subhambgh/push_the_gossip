@@ -14,27 +14,27 @@ defmodule KV.Bucket2 do
   end
 
   # def gossip(s,w) do
-  def handle_cast({:gossip, {received_s, received_w}},{s, w, count}) do
+  def handle_cast({:send, {received_s, received_w}},{s, w, count}) do
     #IO.puts("#{inspect(self())} #{received_s} #{received_w}")
     state = GenServer.call(KV.Registry, {:getState})
     if state != %{} do
       {_, neighbour_pid} = Enum.random(state)
       if neighbour_pid != self() do
-        GenServer.cast(neighbour_pid, {:transrumor, {received_s, received_s}})
+        GenServer.cast(neighbour_pid, {:receive, {received_s, received_s}})
       else
         # incase if the random pid is self, resend the incoming msg
-        GenServer.cast(self(), {:gossip, {received_s, received_w}})
+        GenServer.cast(self(), {:send, {received_s, received_w}})
       end
     else
       #incase the map is not initialized
-      GenServer.cast(self(), {:gossip, {received_s, received_w}})
+      GenServer.cast(self(), {:send, {received_s, received_w}})
     end
     {:noreply, {s, w, count}}
   end
 
   # this is the receive
   @impl true
-  def handle_cast({:transrumor, {received_s, received_w}}, {s, w, count}) do
+  def handle_cast({:receive, {received_s, received_w}}, {s, w, count}) do
     #IO.puts("#{inspect(self())} #{received_s} #{received_w} #{count}")
     old_ratio = s / w
     s = received_s + s
@@ -52,7 +52,7 @@ defmodule KV.Bucket2 do
     else
       # gossip(s,w)
       #V.VampireState.push(V.VampireState,self(),{s,w,count})
-      GenServer.cast(self(), {:gossip, {s, w}})
+      GenServer.cast(self(), {:send, {s, w}})
       {:noreply, {s, w, count}}
     end
   end
