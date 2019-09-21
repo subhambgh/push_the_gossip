@@ -43,36 +43,19 @@ defmodule KV.Registry do
 
   def push_sum_full(numNodes) do
     for i <- 1..numNodes do
-      GenServer.call(KV.Registry, {:create_push_full, i}, :infinity)
+      GenServer.call(KV.Registry, {:create_push_full, i})
     end
-
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-    IO.puts("State")
-    IO.inspect(state)
-
     if state != %{} do
       {_, random_pid} = Enum.random(state)
-
-      Task.await(
-        Task.async(fn -> GenServer.cast(random_pid, {:transrumor, {0, 0}}) end),
-        :infinity
-      )
+      GenServer.cast(random_pid, {:transrumor, {0, 0}})
+      #run()
     end
-
-    Task.await(Task.async(fn -> iamon() end), :infinity)
-
   end
 
-  def iamon() do
-    
-    receive do
-      {:justfinish} -> (
-        IO.puts("finishing registry")
-        Process.exit(self(), :kill)
-        )
-    end
-    IO.puts("iao")
+  def run() do
+    run()
   end
 
   @impl true
@@ -110,7 +93,6 @@ defmodule KV.Registry do
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
       # {:noreply, {names, refs}}
-      IO.inspect(pid)
       {:reply, {names, refs}, {names, refs}}
     end
   end
