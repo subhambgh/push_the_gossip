@@ -22,9 +22,11 @@ defmodule KV.Bucket2 do
       if neighbour_pid != self() do
         GenServer.cast(neighbour_pid, {:transrumor, {received_s, received_s}})
       else
+        # incase if the random pid is self, resend the incoming msg
         GenServer.cast(self(), {:gossip, {received_s, received_w}})
       end
     else
+      #incase the map is not initialized
       GenServer.cast(self(), {:gossip, {received_s, received_w}})
     end
     {:noreply, {s, w, count}}
