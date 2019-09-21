@@ -45,16 +45,18 @@ defmodule KV.Registry do
     for i <- 1..numNodes do
       GenServer.call(KV.Registry, {:create_push_full, i})
     end
-
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-
     if state != %{} do
       {_, random_pid} = Enum.random(state)
       GenServer.cast(random_pid, {:transrumor, {0, 0}})
+      #run()
     end
   end
 
+  def run() do
+    run()
+  end
   @impl true
   def handle_call({:lookup, name}, _from, state) do
     {names, _} = state
