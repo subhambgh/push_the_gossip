@@ -1,4 +1,4 @@
-defmodule KV.Bucket3 do
+defmodule KV.Bucket do
   use GenServer
 
   def start_link(count) do
@@ -17,7 +17,7 @@ defmodule KV.Bucket3 do
     if state != %{} do
       {_, neighbour_pid} = Enum.random(state)
 
-      if neighbour_pid != self() do
+      if neighbour_pid != nil && neighbour_pid != self() do
         GenServer.cast(neighbour_pid, {:transrumor, "rumor"})
       end
     end
@@ -30,23 +30,13 @@ defmodule KV.Bucket3 do
   def handle_cast({:transrumor, rumor}, count) do
     IO.inspect(count)
 
-    if count < 10 do
+    if(count < 10) do
       {:noreply, count + 1}
     else
-      # send(self(), :kill_me_pls)
+      # {:stop, reason, new_state}
+      # {:stop, :normal, count}
       Process.exit(self(), :kill)
-      {:noreply, count + 1}
+      {:noreply, "killed"}
     end
-  end
-
-  @impl true
-  def handle_info(:kill_me_pls, state) do
-    # {:stop, reason, new_state}
-    {:stop, :normal, state}
-  end
-
-  @impl true
-  def terminate(_, _state) do
-    IO.inspect("Look! I'm dead.")
   end
 end
