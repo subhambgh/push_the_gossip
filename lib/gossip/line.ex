@@ -1,41 +1,54 @@
-defmodule KV.Bucket3 do
+ defmodule KV.GossipLine do
   use GenServer
 
-  def start_link(count) do
-    GenServer.start_link(__MODULE__, count)
+  def start_link([name]) do
+    GenServer.start_link(__MODULE__, name)
   end
 
   @impl true
-  def init(count) do
-    Task.async(fn -> gossip() end)
-    {:ok, count}
+  def init(name) do
+    # Task.async(fn -> gossip() end)
+    {:ok, {0, name}} #{:ok, count, name}
   end
 
-  def gossip() do
+  def gossip(my_name) do
+    #IO.puts("Ok, #{my_name} infected...")
+    {:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
+    # IO.inspect(my_neighbours)
     state = GenServer.call(KV.Registry, {:getState})
 
-    if state != %{} do
-      {_, neighbour_pid} = Enum.random(state)
+    random_neighbour = Enum.random(my_neighbours)
 
-      if neighbour_pid != self() do
-        GenServer.cast(neighbour_pid, {:transrumor, "rumor"})
-      end
+    {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
+
+    # IO.inspect(random_neighbour_pid)
+
+    if random_neighbour_pid != nil do
+      #IO.puts("#{my_name} sending to #{random_neighbour}")
+      GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
     end
 
-    gossip()
+    gossip(my_name)
   end
 
   # this is the receive
   @impl true
-  def handle_cast({:transrumor, rumor}, count) do
+  def handle_cast({:transrumor, rumor}, {count, name}) do
+    #IO.puts("Message rec..")
     IO.inspect(count)
 
-    if(count < 10) do
-      {:noreply, count + 1}
+    if count == 0 do
+      # infected _ now infect others
+      Task.async(fn -> gossip(name) end)
+      {:noreply, {count + 1, name}}
     else
-      # send(self(), :kill_me_pls)
-      Process.exit(self(), :kill)
-      {:noreply, count + 1}
+      if count < 10 do
+        {:noreply, {count + 1, name}}
+      else
+        # send(self(), :kill_me_pls)
+        Process.exit(self(), :kill)
+        {:noreply, {count + 1, name}}
+      end
     end
   end
 

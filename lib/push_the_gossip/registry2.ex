@@ -49,11 +49,11 @@ defmodule V.VampireState do
   def handle_call({:print}, _, vampires) do
     Enum.each(Enum.sort(vampires), fn {k, v} ->
       IO.puts(
-        "#{inspect k} #{inspect v}"
-        #v
-        #|> Enum.flat_map(&[elem(&1, 0), elem(&1, 1)])
-        #|> List.insert_at(0, k)
-        #|> Enum.join(" ")
+        "#{inspect(k)} #{inspect(v)}"
+        # v
+        # |> Enum.flat_map(&[elem(&1, 0), elem(&1, 1)])
+        # |> List.insert_at(0, k)
+        # |> Enum.join(" ")
       )
     end)
 
@@ -65,7 +65,7 @@ defmodule V.VampireState do
   """
   @impl true
   def handle_cast({:push, n, fangs}, vampires) do
-    IO.puts("#{inspect n} #{inspect fangs}")
+    IO.puts("#{inspect(n)} #{inspect(fangs)}")
     vampires = Map.put(vampires, n, fangs)
     {:noreply, vampires}
   end
