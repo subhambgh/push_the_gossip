@@ -1,4 +1,4 @@
-defmodule KV.Bucket3 do
+defmodule KV.Bucket do
   use GenServer
 
   def start_link(count) do
@@ -30,9 +30,7 @@ defmodule KV.Bucket3 do
   def handle_cast({:transrumor, rumor}, count) do
     IO.inspect(count)
 
-
     if count < 10 do
-
       {:noreply, count + 1}
     else
       # send(self(), :kill_me_pls)
