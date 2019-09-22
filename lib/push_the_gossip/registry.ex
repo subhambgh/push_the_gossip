@@ -31,6 +31,9 @@ defmodule KV.Registry do
     {:reply, Map.fetch(adj_list, myName), state}
   end
 
+
+  # ======================= Gossip Full Start ================================#
+
   @impl true
   def handle_cast({:create_gossip_full, name}, {names, refs, adj_list}) do
     # IO.puts("Creating #{name}")
@@ -44,6 +47,10 @@ defmodule KV.Registry do
       {:noreply, {names, refs, adj_list}}
     end
   end
+
+    # ======================= Gossip Full End ================================#
+
+  # ======================= Gossip Line Start ================================#
 
   @impl true
   def handle_cast({:create_gossip_line, [name, numNodes]}, {names, refs, adj_list}) do
@@ -72,6 +79,10 @@ defmodule KV.Registry do
     end
   end
 
+  # ===================== Gossip Line End ==============================#
+
+  # ===================== Push Sum Full Start ==============================#
+
   @impl true
   def handle_cast({:create_push_full, name}, {names, refs, adj_list}) do
     if Map.has_key?(names, name) do
@@ -84,6 +95,10 @@ defmodule KV.Registry do
       {:noreply, {names, refs, adj_list}}
     end
   end
+
+ # ===================== Push Sum Full End ==============================#
+
+  # ===================== Push Sum Line Start ==============================#
 
   @impl true
   def handle_cast({:create_push_line, [name, numNodes]}, {names, refs, adj_list}) do
@@ -112,6 +127,10 @@ defmodule KV.Registry do
       {:noreply, {names, refs, adj_list}}
     end
   end
+
+ # ===================== Push Sum Line End ==============================#
+
+  # ===================== Push Sum Line Start ==============================#
 
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs, adj_list}) do
