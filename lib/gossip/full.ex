@@ -1,14 +1,14 @@
-defmodule KV.Bucket do
+defmodule KV.GossipFull do
   use GenServer
 
-  def start_link(count) do
-    GenServer.start_link(__MODULE__, count)
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, :ok, _opts)
   end
 
   @impl true
-  def init(count) do
-    Task.async(fn -> gossip() end)
-    {:ok, count}
+  def init(:ok) do
+    # Task.async(fn -> gossip() end)
+    {:ok, 0} #{:ok, count}
   end
 
   def gossip() do
@@ -30,12 +30,18 @@ defmodule KV.Bucket do
   def handle_cast({:transrumor, rumor}, count) do
     IO.inspect(count)
 
-    if count < 10 do
+    if count == 0 do
+      # infected _ now infect others
+      Task.async(fn -> gossip() end)
       {:noreply, count + 1}
     else
-      # send(self(), :kill_me_pls)
-      Process.exit(self(), :kill)
-      {:noreply, count + 1}
+      if count < 10 do
+        {:noreply, count + 1}
+      else
+        # send(self(), :kill_me_pls)
+        Process.exit(self(), :kill)
+        {:noreply, count + 1}
+      end
     end
   end
 

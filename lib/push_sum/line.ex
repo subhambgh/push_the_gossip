@@ -10,27 +10,26 @@ defmodule KV.PushSumLine do
     # Task.async(fn-> gossip(s,w,1000) end)
     # Task.async(fn-> run() end)
     # 0 for count
-    {:ok, {s, w, 0, s}}
+    {:ok, {s, w, 0, s}}  #{:ok, s, w, count, node's name (same as s)}
   end
 
   # def gossip(s,w) do
   def handle_cast({:send, {received_s, received_w}}, {s, w, count, my_name}) do
     # IO.puts("#{inspect(self())} #{received_s} #{received_w}")
-    
-    { :ok, my_neighbours } = GenServer.call(KV.Registry, {:getAdjList, my_name})
-    #IO.inspect(my_neighbours)
+
+    {:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
+    # IO.inspect(my_neighbours)
     state = GenServer.call(KV.Registry, {:getState})
 
-    let_me_send_to_name = Enum.random(my_neighbours)
+    random_neighbour = Enum.random(my_neighbours)
 
-    { :ok, let_me_send_to_pid} = GenServer.call(KV.Registry, {:lookup, let_me_send_to_name})
+    {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
 
-    #IO.inspect(let_me_send_to_pid)
+    # IO.inspect(random_neighbour_pid)
 
-    if let_me_send_to_pid != nil do
-        IO.puts("#{my_name} sending to #{let_me_send_to_name}")
-        GenServer.cast(let_me_send_to_pid, {:receive, {received_s, received_s}})
-
+    if random_neighbour_pid != nil do
+      #IO.puts("#{my_name} sending to #{random_neighbour}")
+      GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_s}})
     else
       # incase the map is not initialized
 

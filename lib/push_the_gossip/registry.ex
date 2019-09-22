@@ -13,55 +13,7 @@ defmodule KV.Registry do
     {:ok, {names, refs, adj_list}}
   end
 
-  def gossip_full(numNodes) do
-    for i <- 1..numNodes do
-      GenServer.cast(KV.Registry, {:create, i})
-    end
-  end
-
-  def gossip_line(numNodes) do
-    for i <- 1..numNodes do
-      GenServer.cast(KV.Registry, {:create, i, numNodes})
-    end
-  end
-
-  def push_sum_full(numNodes) do
-    for i <- 1..numNodes do
-      GenServer.call(KV.Registry, {:create_push_full, i})
-    end
-
-    # initialize
-    state = GenServer.call(KV.Registry, {:getState})
-
-    if state != %{} do
-      {_, random_pid} = Enum.random(state)
-      GenServer.cast(random_pid, {:transrumor, {0, 0}})
-      # run()
-    end
-  end
-  
-  def push_sum_line(numNodes) do
-    IO.puts("really up here #{numNodes}")
-    for i <- 1..numNodes do
-      IO.puts("up here #{numNodes}")
-      GenServer.call(KV.Registry, {:create_push_line, i, numNodes})
-    end
-
-    # initialize
-    state = GenServer.call(KV.Registry, {:getState})
-
-    if state != %{} do
-      {_, random_pid} = Enum.random(state)
-      GenServer.cast(random_pid, {:transrumor, {0, 0}})
-      # run()
-    end
-  end
-
-  def run() do
-    run()
-  end
-
-  @impl true
+ @impl true
   def handle_call({:lookup, name}, _from, state) do
     {names, _, _} = state
     {:reply, Map.fetch(names, name), state}
@@ -74,18 +26,18 @@ defmodule KV.Registry do
 
   @impl true
   def handle_call({:getAdjList, myName}, _from, state) do
-    
-    { _, _, adj_list} = state
+    {_, _, adj_list} = state
 
     {:reply, Map.fetch(adj_list, myName), state}
   end
 
   @impl true
   def handle_cast({:create_gossip_full, name}, {names, refs, adj_list}) do
+    # IO.puts("Creating #{name}")
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.Bucket, 0})
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor,   KV.GossipFull)
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
@@ -94,22 +46,23 @@ defmodule KV.Registry do
   end
 
   @impl true
-  def handle_cast({:create_gossip_line, name, numNodes}, {names, refs, adj_list}) do
+  def handle_cast({:create_gossip_line, [name, numNodes]}, {names, refs, adj_list}) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.Bucket, 0})
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.GossipLine, [name]})
 
-      case name do
-        1 ->
-          adj_list = Map.put(adj_list, name, [name + 1])
+      adj_list =
+        cond do
+          name == 1 ->
+            Map.put(adj_list, name, [name + 1])
 
-        numNodes ->
-          adj_list = Map.put(adj_list, name, [name - 1])
+          name == numNodes ->
+            Map.put(adj_list, name, [name - 1])
 
-        _ ->
-          adj_list = Map.put(adj_list, name, [name - 1, name + 1])
-      end
+          true ->
+            Map.put(adj_list, name, [name - 1, name + 1])
+        end
 
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
@@ -139,24 +92,23 @@ defmodule KV.Registry do
     else
       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1]})
 
-      #IO.puts("Abe #{name} #{numNodes} aa gaya")
-      adj_list =  cond do
-        name == 1 ->
-          Map.put(adj_list, name, [name + 1])
+      adj_list =
+        cond do
+          name == 1 ->
+            Map.put(adj_list, name, [name + 1])
 
-        name == numNodes ->
-          Map.put(adj_list, name, [name - 1])
+          name == numNodes ->
+            Map.put(adj_list, name, [name - 1])
 
-        true ->
-          Map.put(adj_list, name, [name - 1, name + 1])
-          
-      end
-      
+          true ->
+            Map.put(adj_list, name, [name - 1, name + 1])
+        end
+
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-      #IO.puts("#{name}")
-      #IO.inspect(adj_list)
+      # IO.puts("#{name}")
+      # IO.inspect(adj_list)
       {:noreply, {names, refs, adj_list}}
     end
   end
