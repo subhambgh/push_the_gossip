@@ -28,7 +28,7 @@ defmodule KV.PushSumLine do
     # IO.inspect(random_neighbour_pid)
 
     if random_neighbour_pid != nil do
-      #IO.puts("#{my_name} sending to #{random_neighbour}")
+      IO.puts("#{my_name} sending to #{random_neighbour}")
       GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_s}})
     else
       # incase the map is not initialized

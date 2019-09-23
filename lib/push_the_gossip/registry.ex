@@ -81,6 +81,28 @@ defmodule KV.Registry do
 
   # ===================== Gossip Line End ==============================#
 
+  # ======================= Gossip 3D Start ================================#
+
+  @impl true
+  def handle_cast({:create_gossip_3D, [name, numNodes, neighbours]}, {names, refs, adj_list}) do
+    if Map.has_key?(names, name) do
+      {:noreply, {names, refs, adj_list}}
+    else
+
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.GossipLine, [name]})
+
+      adj_list = Map.put(adj_list, name, neighbours)
+
+      ref = Process.monitor(pid)
+      refs = Map.put(refs, ref, name)
+      names = Map.put(names, name, pid)
+
+      {:noreply, {names, refs, adj_list}}
+    end
+  end
+
+  # ===================== Gossip 3D End ==============================#
+
   # ===================== Push Sum Full Start ==============================#
 
   @impl true
@@ -130,7 +152,28 @@ defmodule KV.Registry do
 
  # ===================== Push Sum Line End ==============================#
 
-  # ===================== Push Sum Line Start ==============================#
+  # ======================= Push Sum 3D Start ================================#
+
+  @impl true
+  def handle_cast({:create_push_3D, [name, numNodes, neighbours]}, {names, refs, adj_list}) do
+    if Map.has_key?(names, name) do
+      {:noreply, {names, refs, adj_list}}
+    else
+      IO.puts "creating #{name}"
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1]})
+
+      adj_list = Map.put(adj_list, name, neighbours)
+      ref = Process.monitor(pid)
+      refs = Map.put(refs, ref, name)
+      names = Map.put(names, name, pid)
+
+      {:noreply, {names, refs, adj_list}}
+    end
+  end
+
+  # ===================== Push Sum 3D End ==============================#
+
+
 
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs, adj_list}) do
@@ -150,4 +193,78 @@ defmodule KV.Registry do
   def handle_info(_msg, state) do
     {:noreply, state}
   end
+
+
+   # ======== Functions for 3D torus Neighbour Generation =================#  
+
+  def coordinates_to_node_name(x,y,z, rowcnt, rowcnt_square) do
+
+    [ (x-1) * rowcnt_square + (y-1) * rowcnt + (z)]
+      
+  end
+
+  def nodeListMaker(x, y, z, rowcnt, rowcnt_square) do
+      
+    node_neighbour_list = []
+
+
+    node_neighbour_list = [cond do
+        x != rowcnt -> coordinates_to_node_name(x+1, y, z, rowcnt, rowcnt_square)
+        true -> coordinates_to_node_name(1, y, z, rowcnt, rowcnt_square)
+
+    end | node_neighbour_list]
+
+    #IO.inspect(node_neighbour_list)
+
+    node_neighbour_list = [cond do
+        y != rowcnt -> coordinates_to_node_name(x, y+1, z, rowcnt, rowcnt_square) 
+
+        true -> coordinates_to_node_name(x, 1, z, rowcnt, rowcnt_square)
+    end | node_neighbour_list]
+
+    #IO.inspect(node_neighbour_list)
+
+    node_neighbour_list = [cond do
+        z != rowcnt ->  coordinates_to_node_name(x, y, z+1, rowcnt, rowcnt_square)
+    
+        true -> coordinates_to_node_name(x, y, 1, rowcnt, rowcnt_square)
+    end | node_neighbour_list]
+
+    #IO.inspect(node_neighbour_list)
+
+    node_neighbour_list = [cond do
+        x != 1 -> coordinates_to_node_name(x-1, y, z, rowcnt, rowcnt_square)
+        true -> coordinates_to_node_name(rowcnt, y, z, rowcnt, rowcnt_square)
+    end | node_neighbour_list]
+
+    #IO.inspect(node_neighbour_list)
+
+    node_neighbour_list = [cond do
+        y != 1 -> coordinates_to_node_name(x, y - 1, z, rowcnt, rowcnt_square)
+    
+        true -> coordinates_to_node_name(x, rowcnt, z, rowcnt, rowcnt_square)
+    end | node_neighbour_list]
+
+    #IO.inspect(node_neighbour_list)
+
+    node_neighbour_list = [cond do
+        z != 1 -> coordinates_to_node_name(x, y, z - 1, rowcnt, rowcnt_square)
+        true -> coordinates_to_node_name(x, y, rowcnt, rowcnt, rowcnt_square)    
+    end | node_neighbour_list] 
+
+    #IO.inspect(node_neighbour_list)
+
+  end
+
+  def generate3d(numNodes, rowcnt, rowcnt_square) do
+    
+    
+    #IO.puts("#{rowcnt}")
+    for x <- 1..rowcnt, y <- 1..rowcnt, z <- 1..rowcnt, do:
+      Enum.uniq(List.flatten( nodeListMaker(x,y,z,rowcnt,rowcnt_square) )) 
+  end 
+
+  # ======= Functions for 3D torus Neighbour Generation End ===============#  
+
+
 end
