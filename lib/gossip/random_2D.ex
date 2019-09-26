@@ -1,4 +1,4 @@
-defmodule KV.ThreeD do
+defmodule KV.GossipRandom2D do
   use GenServer
 
   def start_link([name]) do
@@ -25,7 +25,7 @@ defmodule KV.ThreeD do
     # IO.inspect(random_neighbour_pid)
 
     if random_neighbour_pid != nil do
-      # IO.puts("#{my_name} sending to #{random_neighbour}")
+      IO.puts("#{my_name} sending to #{random_neighbour}")
       GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
     end
 

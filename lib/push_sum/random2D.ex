@@ -1,17 +1,17 @@
-defmodule KV.PushSumLine do
+defmodule KV.PushSumRandom2D do
   use GenServer
 
-  def start_link([s, w]) do
-    GenServer.start_link(__MODULE__, [s, w])
+  def start_link([s, w, name]) do
+    GenServer.start_link(__MODULE__, [s, w, name])
   end
 
   @impl true
-  def init([s, w]) do
+  def init([s, w, name]) do
     # Task.async(fn-> gossip(s,w,1000) end)
     # Task.async(fn-> run() end)
     # 0 for count
     # {:ok, s, w, count, node's name (same as s)}
-    {:ok, {s, w, 0, s}}
+    {:ok, {s, w, 0, name}}
   end
 
   # def gossip(s,w) do
@@ -19,17 +19,18 @@ defmodule KV.PushSumLine do
     # IO.puts("#{inspect(self())} #{received_s} #{received_w}")
 
     {:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
-    # IO.inspect(my_neighbours)
+    IO.inspect(my_neighbours)
     state = GenServer.call(KV.Registry, {:getState})
 
     random_neighbour = Enum.random(my_neighbours)
 
     {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
 
-    # IO.inspect(random_neighbour_pid)
+    #IO.puts "some neighbour pid"
+    #IO.inspect(random_neighbour_pid)
 
     if random_neighbour_pid != nil do
-      IO.puts("#{my_name} sending to #{random_neighbour}")
+      #IO.puts("#{my_name} sending to #{random_neighbour}")
       GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_s}})
     else
       # incase the map is not initialized

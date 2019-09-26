@@ -8,7 +8,8 @@ defmodule KV.GossipFull do
   @impl true
   def init(:ok) do
     # Task.async(fn -> gossip() end)
-    {:ok, 0} #{:ok, count}
+    # {:ok, count}
+    {:ok, 0}
   end
 
   def gossip() do
