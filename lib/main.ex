@@ -118,6 +118,8 @@ defmodule KV.Main do
 
   # ======================= Gossip 3D End ================================#
 
+
+
   # ===================== Push Sum Full Start ==============================#
 
   def push_sum_full(numNodes) do
@@ -163,7 +165,7 @@ defmodule KV.Main do
   def push_sum_Random_2D(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
-    # START HERE
+    # START here
 
     nodeList = KV.Registry.generate_random_2D(numNodes, []) #pass empty list first
     IO.puts"nodeList"

@@ -14,6 +14,7 @@ defmodule KV.Registry do
   end
 
   @impl true
+  
   def handle_call({:lookup, name}, _from, state) do
     {names, _, _} = state
     {:reply, Map.fetch(names, name), state}
@@ -347,5 +348,149 @@ defmodule KV.Registry do
   end
 
   # ======= Functions for 3D torus Neighbour Generation End ===============#  
+
+  # ======= Functions for Honeycomb Neighbour Generation ===============#  
+
+
+  def add_edges(point_a, point_b, adjacency_map) do
+    
+    neighbour_of_a = Enum.uniq ( [ point_b | adjacency_map[point_a] ] )
+
+    neighbour_of_b = Enum.uniq( [ point_a | adjacency_map[point_b] ] )
+
+    adjacency_map = Map.put(adjacency_map, point_a, neighbour_of_a)
+
+    adjacency_map = Map.put(adjacency_map, point_b, neighbour_of_b)
+
+    adjacency_map
+
+  end
+
+  def connections_of_hexagons(list_of_points, adjacency_map) do
+    
+    adjacency_map = add_edges(Enum.at(list_of_points,0), Enum.at(list_of_points,1), adjacency_map)
+
+    adjacency_map = add_edges(Enum.at(list_of_points,0), Enum.at(list_of_points,2), adjacency_map)
+
+    adjacency_map = add_edges(Enum.at(list_of_points,1), Enum.at(list_of_points,3), adjacency_map)
+
+    adjacency_map = add_edges(Enum.at(list_of_points,2), Enum.at(list_of_points,4), adjacency_map)
+
+    adjacency_map = add_edges(Enum.at(list_of_points,3), Enum.at(list_of_points,5), adjacency_map)
+
+    adjacency_map = add_edges(Enum.at(list_of_points,4), Enum.at(list_of_points,5), adjacency_map)    
+
+  end
+
+  def add_point_to_adjacency_map(point, adjacency_map) do
+    adjacency_map = cond do
+                      Map.has_key?(adjacency_map, point) == false-> Map.put(adjacency_map, point, [])
+                      true -> adjacency_map
+                    end
+  end
+
+  def make_hexagons_nodes(hexagon_x, hexagon_y, numNodes, adjacency_map) do
+
+    IO.puts "Creating hexagon #{hexagon_x}, #{hexagon_y} "
+
+    offset = if rem(hexagon_y, 2) == 0, do: 0, else: 1
+
+    point_1 = [ hexagon_x * 2 + 1 + offset, hexagon_y * 2]
+
+    point_2 = [ hexagon_x * 2 + offset, hexagon_y * 2 + 1]
+
+    point_3 = [ hexagon_x * 2 + 2 + offset, hexagon_y * 2 + 1]
+
+    point_4 = [ hexagon_x * 2 + offset, hexagon_y * 2 + 2]
+
+    point_5 = [ hexagon_x * 2 + 2 + offset, hexagon_y * 2 + 2]
+
+    point_6 = [ hexagon_x * 2 + 1 + offset, hexagon_y * 2 + 3]
+
+    list_of_points = [point_1, point_2, point_3, point_4, point_5, point_6]
+
+    initial_size = map_size(adjacency_map)
+    #IO.puts "initial_size: #{initial_size}"
+
+    adjacency_map = add_point_to_adjacency_map(point_1, adjacency_map)
+
+    adjacency_map = add_point_to_adjacency_map(point_2, adjacency_map)
+
+    adjacency_map = add_point_to_adjacency_map(point_3, adjacency_map)
+
+    adjacency_map = add_point_to_adjacency_map(point_4, adjacency_map)
+
+    adjacency_map = add_point_to_adjacency_map(point_5, adjacency_map)
+
+    adjacency_map = add_point_to_adjacency_map(point_6, adjacency_map)
+
+    final_size = map_size(adjacency_map)
+    #IO.puts "final_size: #{final_size}"
+
+    adjacency_map = connections_of_hexagons(list_of_points, adjacency_map)
+
+    newNumNodes = numNodes - ( final_size - initial_size)
+
+    {newNumNodes, adjacency_map}
+
+  end
+
+  def inner_loop(i, j, numNodes, adjacency_map) do
+
+    if j == i+1 or numNodes <= 0 do
+      
+      IO.puts("Done with #{i}")
+      {numNodes, adjacency_map}
+
+    else
+
+
+      #IO.puts("from inner loop #{i} #{j} #{numNodes}")
+
+      {newNumNodes, new_adjacency_map} = make_hexagons_nodes(j, i, numNodes, adjacency_map) 
+
+      
+
+      if newNumNodes <= 0 or i == j do
+        
+        {newNumNodes, new_adjacency_map}
+
+      else
+
+        #IO.puts("from inner loop 2nd part #{i} #{j} #{newNumNodes}")
+        
+        {newNumNodes2, new_adjacency_map} = make_hexagons_nodes(i, j, newNumNodes, new_adjacency_map) 
+
+        inner_loop(i, j+1, newNumNodes2, new_adjacency_map)
+
+      end
+
+      
+  
+    end
+  
+  end
+
+  def outer_loop(i, numNodes, adjacency_map) do
+
+    if numNodes <= 0 do 
+      IO.puts "Done"
+      adjacency_map
+      
+    
+    else 
+
+      #IO.puts("from outer_loop loop #{i} #{numNodes}")
+
+      {newNumNodes, adjacency_map} = inner_loop(i, 0, numNodes, adjacency_map)
+
+      outer_loop(i+1, newNumNodes, adjacency_map)
+
+    end
+
+  end
+
+  # ======= Functions for Honeycomb Neighbour Generation End ===============#  
+
 end
 
