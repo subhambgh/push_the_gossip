@@ -29,7 +29,7 @@ defmodule KV.GossipFull do
   # this is the receive
   @impl true
   def handle_cast({:transrumor, rumor}, count) do
-    IO.inspect(count)
+    
 
     if count == 0 do
       # infected _ now infect others
@@ -40,6 +40,7 @@ defmodule KV.GossipFull do
         {:noreply, count + 1}
       else
         # send(self(), :kill_me_pls)
+        IO.inspect(count)
         Process.exit(self(), :kill)
         {:noreply, count + 1}
       end
