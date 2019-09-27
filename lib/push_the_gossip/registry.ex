@@ -22,16 +22,17 @@ defmodule KV.Registry do
 
   @impl true
   def handle_call({:updateAdjList,nameToDelete}, _from, {names, refs, adj_list}) do
-    # suppose nameToDelete = 2
-    # 2=> [3,1]
-    # 3 => [4,2] #so we have to delete 2 in the here
-    # 1=> [2] #and here
 
     if(adj_list == %{} || adj_list == nil)do
       Enum.each(names, fn {k,v} ->
         Process.exit(v, :kill)
       end)
     end
+
+    # suppose nameToDelete = 2
+    # 2=> [3,1]
+    # 3 => [4,2] #so we have to delete 2 in the here
+    # 1=> [2] #and here
 
     if adj_list[nameToDelete] == nil  do
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
@@ -60,11 +61,11 @@ defmodule KV.Registry do
 
   @impl true
   def handle_call({:getRandomNeighPidFromAdjList, myName}, _from, {names, refs, adj_list}) do
-    #IO.puts("#{myName}"<>inspect(adj_list))
+    #IO.puts(inspect(adj_list))
     my_neighbours = adj_list[myName]
     if my_neighbours != [] && my_neighbours != nil do
       random_neighbour = Enum.random(my_neighbours)
-      {:reply, names[random_neighbour], {names, refs, adj_list}}
+      {:reply, {random_neighbour, names[random_neighbour]}, {names, refs, adj_list}}
     else
       {:reply, nil, {names, refs, adj_list}}
     end
