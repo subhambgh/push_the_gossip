@@ -16,7 +16,35 @@ defmodule KV.Registry do
   @impl true
   def handle_call({:lookup, name}, _from, state) do
     {names, _, _} = state
-    {:reply, Map.fetch(names, name), state}
+    value = names[name]
+    {:reply, value, state}
+  end
+
+  @impl true
+  def handle_call({:updateAdjList,nameToDelete}, _from, {names, refs, adj_list}) do
+    # suppose nameToDelete = 2
+    # 2=> [3,1]
+    # 3 => [4,2] #so we have to delete 2 in the here
+    # 1=> [2] #and here
+
+    if(adj_list == %{} || adj_list == nil)do
+      Enum.each(names, fn {k,v} ->
+        Process.exit(v, :kill)
+      end)
+    end
+
+    if adj_list[nameToDelete] == nil  do
+      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
+    else
+      keyList = adj_list[nameToDelete]                                #[3,1]
+      adj_list = Map.delete(adj_list,nameToDelete)
+      adj_list = Enum.reduce(keyList,adj_list, fn(key,acc) ->         #for each [3,1] , let say for 3
+        elementsList = adj_list[key]                                  #[4,2]
+        updatedElementList = List.delete(elementsList, nameToDelete)  #[4]
+        Map.put(acc,key,updatedElementList)                           #add [3 => [4]]
+      end)
+      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
+    end
   end
 
   @impl true
@@ -27,8 +55,19 @@ defmodule KV.Registry do
   @impl true
   def handle_call({:getAdjList, myName}, _from, state) do
     {_, _, adj_list} = state
-
     {:reply, Map.fetch(adj_list, myName), state}
+  end
+
+  @impl true
+  def handle_call({:getRandomNeighPidFromAdjList, myName}, _from, {names, refs, adj_list}) do
+    #IO.puts("#{myName}"<>inspect(adj_list))
+    my_neighbours = adj_list[myName]
+    if my_neighbours != [] && my_neighbours != nil do
+      random_neighbour = Enum.random(my_neighbours)
+      {:reply, names[random_neighbour], {names, refs, adj_list}}
+    else
+      {:reply, nil, {names, refs, adj_list}}
+    end
   end
 
   # ======================= Gossip Full Start ================================#
@@ -95,7 +134,7 @@ defmodule KV.Registry do
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
 
-      
+
 
       {:noreply, {names, refs, adj_list}}
     end
@@ -111,13 +150,10 @@ defmodule KV.Registry do
       {:noreply, {names, refs, adj_list}}
     else
       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.GossipLine, [name]})
-
       adj_list = Map.put(adj_list, name, neighbours)
-
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-
       {:noreply, {names, refs, adj_list}}
     end
   end
@@ -188,7 +224,7 @@ defmodule KV.Registry do
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
 
-      
+
 
       {:noreply, {names, refs, adj_list}}
     end
@@ -218,11 +254,11 @@ defmodule KV.Registry do
   # ===================== Push Sum 3D End ==============================#
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs, adj_list}) do
+  def handle_info({:DOWN, ref, :process, _pid, reason}, {names, refs, adj_list}) do
     # handle failure according to the reason
-    # IO.puts("killed")
     {name, refs} = Map.pop(refs, ref)
     names = Map.delete(names, name)
+    IO.puts("killed #{name} with reason "<>inspect(reason))
 
     if map_size(names) == 0 do
       send(self(), {:justfinish})
@@ -236,7 +272,7 @@ defmodule KV.Registry do
     {:noreply, state}
   end
 
-  # ======== Functions for Random 2D Neighbour Generation =================#  
+  # ======== Functions for Random 2D Neighbour Generation =================#
 
   def generate_random_2D(numNodes, node_list) do
     if length(node_list) == numNodes do
@@ -253,12 +289,12 @@ defmodule KV.Registry do
   end
 
   def generate_neighbours_for_random2D(numNodes, node_coordinates) do
-    
+
     #neighbours = generate_empty_neighbour_list_for_random_2D(numNodes
 
-    #map_of_neighbours = for i <- 1..numNodes, into: %{}, do: {i, []} 
+    #map_of_neighbours = for i <- 1..numNodes, into: %{}, do: {i, []}
 
-    node_coordinates |> 
+    node_coordinates |>
     Enum.map(fn pos -> {pos, Enum.filter(List.delete(node_coordinates,pos), &(distance(pos, &1) < 0.1))} end) |>
     Map.new()
 
@@ -266,9 +302,9 @@ defmodule KV.Registry do
   end
 
 
-  # ======== Functions for Random 2D Neighbour Generation End =================#  
+  # ======== Functions for Random 2D Neighbour Generation End =================#
 
-  # ======== Functions for 3D torus Neighbour Generation =================#  
+  # ======== Functions for 3D torus Neighbour Generation =================#
 
   def coordinates_to_node_name(x, y, z, rowcnt, rowcnt_square) do
     [(x - 1) * rowcnt_square + (y - 1) * rowcnt + z]
@@ -346,6 +382,5 @@ defmodule KV.Registry do
         do: Enum.uniq(List.flatten(nodeListMaker(x, y, z, rowcnt, rowcnt_square)))
   end
 
-  # ======= Functions for 3D torus Neighbour Generation End ===============#  
+  # ======= Functions for 3D torus Neighbour Generation End ===============#
 end
-
