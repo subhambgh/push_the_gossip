@@ -31,6 +31,7 @@ defmodule KV.Main do
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
     IO.inspect(state)
+
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       IO.puts("Let's start with #{name}")
@@ -41,12 +42,53 @@ defmodule KV.Main do
 
   # ======================= Gossip Line End ================================#
 
+  # ======================= Gossip Random 2D Start ================================#
+
+  def gossip_Random_2D(numNodes) do
+    # IO.puts("really up here #{numNodes}")
+
+    # START HERE
+
+    nodeList = KV.Registry.generate_random_2D(numNodes, []) #pass empty list first
+    IO.puts"nodeList"
+    IO.inspect(nodeList)
+
+    map_of_neighbours = KV.Registry.generate_neighbours_for_random2D(numNodes, nodeList)
+    IO.puts "map_of_neighbours"
+    IO.inspect (map_of_neighbours)
+
+    for i <- 1..numNodes do
+      # IO.puts("up here #{numNodes}")
+      GenServer.cast(
+        KV.Registry,
+        {:create_gossip_random_2D, [[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)], numNodes, map_of_neighbours[[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)]]]}
+      )
+    end
+
+    # IO.puts("Done creating")
+
+    # initialize
+    state = GenServer.call(KV.Registry, {:getState})
+    IO.puts "state"
+    IO.inspect(state)
+
+    if state != %{} do
+      {name, random_pid} = Enum.random(state)
+      IO.puts("Let's start with")
+      IO.inspect name
+      GenServer.cast(random_pid, {:transrumor, "Infection!"})
+      # run()
+    end
+  end
+
+  # ======================= Gossip Random 2D End ================================#
+
   # ======================= Gossip 3D Start ================================#
 
   def gossip_3D(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
-    rowcnt = round(:math.pow(numNodes, 1/3))
+    rowcnt = round(:math.pow(numNodes, 1 / 3))
     rowcnt_square = rowcnt * rowcnt
 
     list_of_neighbours = KV.Registry.generate3d(numNodes, rowcnt, rowcnt_square)
@@ -54,14 +96,18 @@ defmodule KV.Main do
 
     for i <- 1..numNodes do
       # IO.puts("up here #{numNodes}")
-      GenServer.cast(KV.Registry, {:create_gossip_3D, [i, numNodes, Enum.at(list_of_neighbours, i-1) ]})
+      GenServer.cast(
+        KV.Registry,
+        {:create_gossip_3D, [i, numNodes, Enum.at(list_of_neighbours, i - 1)]}
+      )
     end
 
-    #IO.puts("Done creating")
+    # IO.puts("Done creating")
 
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
     IO.inspect(state)
+
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       IO.puts("Let's start with #{name}")
@@ -71,7 +117,6 @@ defmodule KV.Main do
   end
 
   # ======================= Gossip 3D End ================================#
-
 
   # ===================== Push Sum Full Start ==============================#
 
@@ -113,12 +158,53 @@ defmodule KV.Main do
 
   # ===================== Push Sum Line End ==============================#
 
+  # ======================= Push Sum Random 2D Start ================================#
+
+  def push_sum_Random_2D(numNodes) do
+    # IO.puts("really up here #{numNodes}")
+
+    # START HERE
+
+    nodeList = KV.Registry.generate_random_2D(numNodes, []) #pass empty list first
+    IO.puts"nodeList"
+    IO.inspect(nodeList)
+
+    map_of_neighbours = KV.Registry.generate_neighbours_for_random2D(numNodes, nodeList)
+    IO.puts "map_of_neighbours"
+    IO.inspect (map_of_neighbours)
+
+    for i <- 1..numNodes do
+      # IO.puts("up here #{numNodes}")
+      GenServer.cast(
+        KV.Registry,
+        {:create_push_random_2D, [[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)], i, numNodes, map_of_neighbours[[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)]]]}
+      )
+    end
+
+    # IO.puts("Done creating")
+
+    # initialize
+    state = GenServer.call(KV.Registry, {:getState})
+    IO.puts "state"
+    IO.inspect(state)
+
+    if state != %{} do
+      {name, random_pid} = Enum.random(state)
+      IO.puts("Let's start with")
+      IO.inspect name
+      GenServer.cast(random_pid, {:receive, {0, 0}})
+      # run()
+    end
+  end
+
+  # ======================= Push Sum Random 2D End ================================#
+
   # ======================= Push Sum 3D Start ================================#
 
   def push_sum_3D(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
-    rowcnt = round(:math.pow(numNodes, 1/3))
+    rowcnt = round(:math.pow(numNodes, 1 / 3))
     rowcnt_square = rowcnt * rowcnt
 
     list_of_neighbours = KV.Registry.generate3d(numNodes, rowcnt, rowcnt_square)
@@ -126,7 +212,10 @@ defmodule KV.Main do
 
     for i <- 1..numNodes do
       # IO.puts("up here #{numNodes}")
-      GenServer.cast(KV.Registry, {:create_push_3D, [i, numNodes, Enum.at(list_of_neighbours, i-1) ]})
+      GenServer.cast(
+        KV.Registry,
+        {:create_push_3D, [i, numNodes, Enum.at(list_of_neighbours, i - 1)]}
+      )
     end
 
     IO.puts("Done creating")
@@ -134,6 +223,7 @@ defmodule KV.Main do
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
     IO.inspect(state)
+
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       IO.puts("Let's start with #{name}")
@@ -143,7 +233,4 @@ defmodule KV.Main do
   end
 
   # ======================= Push Sum 3D End ================================#
-  
-
- 
 end
