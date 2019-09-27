@@ -27,7 +27,7 @@ defmodule KV.Registry do
     # 2=> [3,1]
     # 3 => [4,2] #so we have to delete 2 in the here
     # 1=> [2] #and here
-
+    #IO.inspect(adj_list)
     if(adj_list == %{} || adj_list == nil)do
       Enum.each(names, fn {k,v} ->
         Process.exit(v, :kill)
@@ -38,11 +38,21 @@ defmodule KV.Registry do
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
     else
       keyList = adj_list[nameToDelete]                                #[3,1]
+      # IO.puts("---- ")
+      # IO.inspect(nameToDelete)
+      # IO.inspect(keyList)
       adj_list = Map.delete(adj_list,nameToDelete)
       adj_list = Enum.reduce(keyList,adj_list, fn(key,acc) ->         #for each [3,1] , let say for 3
-        elementsList = adj_list[key]                                  #[4,2]
-        updatedElementList = List.delete(elementsList, nameToDelete)  #[4]
-        Map.put(acc,key,updatedElementList)                           #add [3 => [4]]
+      elementsList = adj_list[key]                              #[4,2]
+      #IO.inspect(_)
+      #IO.inspect(adj_list)
+      if elementsList == nil do
+        acc
+      else
+      updatedElementList = List.delete(elementsList, nameToDelete)  #[4]
+      Map.put(acc,key,updatedElementList)                           #add [3 => [4]]
+        
+      end
       end)
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
     end
@@ -161,6 +171,30 @@ defmodule KV.Registry do
 
   # ===================== Gossip 3D End ==============================#
 
+  # ======================= Gossip Honeycomb Start ================================#
+
+  @impl true
+  def handle_cast({:create_gossip_honeycomb, [name, numNodes, neighbours]}, {names, refs, adj_list}) do
+    if Map.has_key?(names, name) do
+      {:noreply, {names, refs, adj_list}}
+    else
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.GossipLine, [name]})
+
+      adj_list = Map.put(adj_list, name, neighbours)
+
+      ref = Process.monitor(pid)
+      refs = Map.put(refs, ref, name)
+      names = Map.put(names, name, pid)
+
+
+
+      {:noreply, {names, refs, adj_list}}
+    end
+  end
+
+  # ===================== Gossip Honeycomb End ==============================#
+
+
   # ===================== Push Sum Full Start ==============================#
 
   @impl true
@@ -259,8 +293,8 @@ defmodule KV.Registry do
     # handle failure according to the reason
     {name, refs} = Map.pop(refs, ref)
     names = Map.delete(names, name)
-    IO.puts("killed #{name} with reason "<>inspect(reason))
-
+    #IO.puts("killed #{IO.inspect name, charlists: :as_lists} with reason "<>inspect(reason))
+    IO.inspect name, charlists: :as_lists
     if map_size(names) == 0 do
       send(self(), {:justfinish})
     end
@@ -527,5 +561,38 @@ defmodule KV.Registry do
 
   # ======= Functions for Honeycomb Neighbour Generation End ===============#  
 
+  # ======= Functions for Random Honeycomb Neighbour Generation ===============#  
+
+  def add_random_nodes(i, list_of_nodes, adjacency_map) do
+    
+    if i == length(list_of_nodes) do
+      adjacency_map
+    
+    else    
+      #IO.puts "#{i}"
+
+      node_to_add = Enum.random((list_of_nodes -- [Enum.at(list_of_nodes, i)]) -- adjacency_map[Enum.at(list_of_nodes,i)])
+
+      IO.inspect(node_to_add)
+
+      adjacency_map_new = Map.put(adjacency_map, Enum.at(list_of_nodes, i), [node_to_add | adjacency_map[Enum.at(list_of_nodes,i)]])
+
+      add_random_nodes( i+1, list_of_nodes, adjacency_map_new)
+
+    end
+
+  end
+
+  def random_honeycomb(adjacency_map) do
+    
+    list_of_nodes = Enum.map(adjacency_map, fn {k,v} -> k end)
+
+    IO.inspect(length(list_of_nodes))
+
+    add_random_nodes(0, list_of_nodes, adjacency_map)
+
+  end
+
+  # ======= Functions for Random Honeycomb Neighbour Generation End ===============#  
 
 end
