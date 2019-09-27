@@ -12,46 +12,52 @@ defmodule KV.GossipLine do
     {:ok, {0, name}}
   end
 
+  # def gossip(my_name) do
+  #   {:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
+  #   if my_neighbours != [] && my_neighbours != nil do
+  #     random_neighbour = Enum.random(my_neighbours)
+  #     IO.puts("sending to #{random_neighbour} from #{my_name}")
+  #     {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
+  #     if random_neighbour_pid ==nil do
+  #       #when the random neighbour selected is dead in b/w the function calls
+  #       gossip(my_name)
+  #     end
+  #     GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
+  #   else
+  #     #remove empty list, %{...,10 => []} - remove 10 here
+  #     GenServer.call(KV.Registry, {:updateAdjList,my_name})
+  #     #no neighbours so converge the actor
+  #     Process.exit(self(), :noNeighbours)
+  #   end
+  #   gossip(my_name)
+  # end
+
   def gossip(my_name) do
-    # IO.puts("Ok, #{my_name} infected...")
-    {:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
-    # IO.inspect(my_neighbours)
-    state = GenServer.call(KV.Registry, {:getState})
-
-    random_neighbour = Enum.random(my_neighbours)
-    #IO.puts "Random Neighbour"
-    #IO.inspect random_neighbour
-
-    {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
-
-    #IO.inspect(random_neighbour_pid)
-
-    if random_neighbour_pid != nil do
-      #IO.inspect my_name
-      #IO.puts("sending to ")
-      #IO.puts random_neighbour
-      GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
+    case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
+      nil ->
+        GenServer.call(KV.Registry, {:updateAdjList,my_name})
+        #Process.exit(self(), :kill)
+      random_neighbour_pid ->
+        GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
     end
-
     gossip(my_name)
   end
 
   # this is the receive
   @impl true
   def handle_cast({:transrumor, rumor}, {count, name}) do
-    # IO.puts("Message rec..")
-    IO.inspect(count)
-
     if count == 0 do
       # infected _ now infect others
       Task.async(fn -> gossip(name) end)
       {:noreply, {count + 1, name}}
     else
       if count < 10 do
+        #IO.inspect(count)
         {:noreply, {count + 1, name}}
       else
-        # send(self(), :kill_me_pls)
-        Process.exit(self(), :kill)
+        #update this registry is dead
+        GenServer.call(KV.Registry, {:updateAdjList,name})
+        #Process.exit(self(), :kill)
         {:noreply, {count + 1, name}}
       end
     end
