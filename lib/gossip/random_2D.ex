@@ -16,7 +16,7 @@ defmodule KV.GossipRandom2D do
     random_neighbour = Enum.random(my_neighbours)
     {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
     if random_neighbour_pid != nil do
-      IO.puts("#{my_name} sending to #{random_neighbour}")
+      #IO.puts("#{my_name} sending to #{random_neighbour}")
       GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
     end
 

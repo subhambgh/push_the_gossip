@@ -102,7 +102,11 @@ defmodule KV.Main do
   def gossip_honeycomb(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
+<<<<<<< HEAD
     map_of_neighbours = KV.Registry.outer_loop(0,numNodes,%{})
+=======
+    map_of_neighbours = KV.Registry.outer_loop(0,numNodes,%{})
+>>>>>>> e941a1f231c55b498b2e0f9489ba81eaf933a03e
     IO.puts "map_of_neighbours"
     IO.inspect (map_of_neighbours)
 
@@ -115,10 +119,17 @@ defmodule KV.Main do
         {:create_gossip_honeycomb, [[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)], numNodes, map_of_neighbours[[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)]]]}
       )
     end
+<<<<<<< HEAD
 
     # Enum.each(map_of_neighbours, fn {k, v} ->
 
     #   Enum.each(v, fn [a,b] ->
+=======
+
+    # Enum.each(map_of_neighbours, fn {k, v} ->
+
+    #   Enum.each(v, fn [a,b] ->
+>>>>>>> e941a1f231c55b498b2e0f9489ba81eaf933a03e
     #     GenServer.cast(
     #       KV.Registry,
     #       {:create_gossip_random_2D, [a, b, numNodes, map_of_neighbours[a, b]]}
@@ -126,7 +137,11 @@ defmodule KV.Main do
 
 
     #   end)
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> e941a1f231c55b498b2e0f9489ba81eaf933a03e
     # end)
 
     IO.puts("Done creating")
@@ -151,9 +166,15 @@ defmodule KV.Main do
   def gossip_random_honeycomb(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
+<<<<<<< HEAD
     map = KV.Registry.outer_loop(0,numNodes,%{})
 
     map_of_neighbours = KV.Registry.random_honeycomb(map)
+=======
+    map = KV.Registry.outer_loop(0,numNodes,%{})
+
+    map_of_neighbours = KV.Registry.random_honeycomb(map)
+>>>>>>> e941a1f231c55b498b2e0f9489ba81eaf933a03e
     IO.puts "map"
     IO.inspect (map_of_neighbours)
 
@@ -161,7 +182,11 @@ defmodule KV.Main do
 
     nodeList = Enum.map(map_of_neighbours, fn {k,v} -> k end)
 
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> e941a1f231c55b498b2e0f9489ba81eaf933a03e
 
     for i <- 1..numNodes do
       # IO.puts("up here #{numNodes}")
@@ -170,10 +195,17 @@ defmodule KV.Main do
         {:create_gossip_honeycomb, [[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)], numNodes, map_of_neighbours[[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)]]]}
       )
     end
+<<<<<<< HEAD
 
     # Enum.each(map_of_neighbours, fn {k, v} ->
 
     #   Enum.each(v, fn [a,b] ->
+=======
+
+    # Enum.each(map_of_neighbours, fn {k, v} ->
+
+    #   Enum.each(v, fn [a,b] ->
+>>>>>>> e941a1f231c55b498b2e0f9489ba81eaf933a03e
     #     GenServer.cast(
     #       KV.Registry,
     #       {:create_gossip_random_2D, [a, b, numNodes, map_of_neighbours[a, b]]}
@@ -181,7 +213,11 @@ defmodule KV.Main do
 
 
     #   end)
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> e941a1f231c55b498b2e0f9489ba81eaf933a03e
     # end)
 
     IO.puts("Done creating")
