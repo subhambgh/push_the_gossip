@@ -14,7 +14,7 @@ defmodule KV.Registry do
   end
 
   @impl true
-  
+
   def handle_call({:lookup, name}, _from, state) do
     {names, _, _} = state
     value = names[name]
@@ -34,6 +34,11 @@ defmodule KV.Registry do
       end)
     end
 
+    # suppose nameToDelete = 2
+    # 2=> [3,1]
+    # 3 => [4,2] #so we have to delete 2 in the here
+    # 1=> [2] #and here
+
     if adj_list[nameToDelete] == nil  do
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
     else
@@ -51,7 +56,7 @@ defmodule KV.Registry do
       else
       updatedElementList = List.delete(elementsList, nameToDelete)  #[4]
       Map.put(acc,key,updatedElementList)                           #add [3 => [4]]
-        
+
       end
       end)
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
@@ -71,11 +76,11 @@ defmodule KV.Registry do
 
   @impl true
   def handle_call({:getRandomNeighPidFromAdjList, myName}, _from, {names, refs, adj_list}) do
-    #IO.puts("#{myName}"<>inspect(adj_list))
+    #IO.puts(inspect(adj_list))
     my_neighbours = adj_list[myName]
     if my_neighbours != [] && my_neighbours != nil do
       random_neighbour = Enum.random(my_neighbours)
-      {:reply, names[random_neighbour], {names, refs, adj_list}}
+      {:reply, {random_neighbour, names[random_neighbour]}, {names, refs, adj_list}}
     else
       {:reply, nil, {names, refs, adj_list}}
     end
@@ -416,13 +421,13 @@ defmodule KV.Registry do
         z <- 1..rowcnt,
         do: Enum.uniq(List.flatten(nodeListMaker(x, y, z, rowcnt, rowcnt_square)))
   end
-  # ======= Functions for 3D torus Neighbour Generation End ===============#  
+  # ======= Functions for 3D torus Neighbour Generation End ===============#
 
-  # ======= Functions for Honeycomb Neighbour Generation ===============#  
+  # ======= Functions for Honeycomb Neighbour Generation ===============#
 
 
   def add_edges(point_a, point_b, adjacency_map) do
-    
+
     neighbour_of_a = Enum.uniq ( [ point_b | adjacency_map[point_a] ] )
 
     neighbour_of_b = Enum.uniq( [ point_a | adjacency_map[point_b] ] )
@@ -436,7 +441,7 @@ defmodule KV.Registry do
   end
 
   def connections_of_hexagons(list_of_points, adjacency_map) do
-    
+
     adjacency_map = add_edges(Enum.at(list_of_points,0), Enum.at(list_of_points,1), adjacency_map)
 
     adjacency_map = add_edges(Enum.at(list_of_points,0), Enum.at(list_of_points,2), adjacency_map)
@@ -447,7 +452,7 @@ defmodule KV.Registry do
 
     adjacency_map = add_edges(Enum.at(list_of_points,3), Enum.at(list_of_points,5), adjacency_map)
 
-    adjacency_map = add_edges(Enum.at(list_of_points,4), Enum.at(list_of_points,5), adjacency_map)    
+    adjacency_map = add_edges(Enum.at(list_of_points,4), Enum.at(list_of_points,5), adjacency_map)
 
   end
 
@@ -507,7 +512,7 @@ defmodule KV.Registry do
   def inner_loop(i, j, numNodes, adjacency_map) do
 
     if j == i+1 or numNodes <= 0 do
-      
+
       IO.puts("Done with #{i}")
       {numNodes, adjacency_map}
 
@@ -516,38 +521,38 @@ defmodule KV.Registry do
 
       #IO.puts("from inner loop #{i} #{j} #{numNodes}")
 
-      {newNumNodes, new_adjacency_map} = make_hexagons_nodes(j, i, numNodes, adjacency_map) 
+      {newNumNodes, new_adjacency_map} = make_hexagons_nodes(j, i, numNodes, adjacency_map)
 
-      
+
 
       if newNumNodes <= 0 or i == j do
-        
+
         {newNumNodes, new_adjacency_map}
 
       else
 
         #IO.puts("from inner loop 2nd part #{i} #{j} #{newNumNodes}")
-        
-        {newNumNodes2, new_adjacency_map} = make_hexagons_nodes(i, j, newNumNodes, new_adjacency_map) 
+
+        {newNumNodes2, new_adjacency_map} = make_hexagons_nodes(i, j, newNumNodes, new_adjacency_map)
 
         inner_loop(i, j+1, newNumNodes2, new_adjacency_map)
 
       end
 
-      
-  
+
+
     end
-  
+
   end
 
   def outer_loop(i, numNodes, adjacency_map) do
 
-    if numNodes <= 0 do 
+    if numNodes <= 0 do
       IO.puts "Done"
       adjacency_map
-      
-    
-    else 
+
+
+    else
 
       #IO.puts("from outer_loop loop #{i} #{numNodes}")
 
@@ -559,16 +564,16 @@ defmodule KV.Registry do
 
   end
 
-  # ======= Functions for Honeycomb Neighbour Generation End ===============#  
+  # ======= Functions for Honeycomb Neighbour Generation End ===============#
 
-  # ======= Functions for Random Honeycomb Neighbour Generation ===============#  
+  # ======= Functions for Random Honeycomb Neighbour Generation ===============#
 
   def add_random_nodes(i, list_of_nodes, adjacency_map) do
-    
+
     if i == length(list_of_nodes) do
       adjacency_map
-    
-    else    
+
+    else
       #IO.puts "#{i}"
 
       node_to_add = Enum.random((list_of_nodes -- [Enum.at(list_of_nodes, i)]) -- adjacency_map[Enum.at(list_of_nodes,i)])
@@ -584,7 +589,7 @@ defmodule KV.Registry do
   end
 
   def random_honeycomb(adjacency_map) do
-    
+
     list_of_nodes = Enum.map(adjacency_map, fn {k,v} -> k end)
 
     IO.inspect(length(list_of_nodes))
@@ -593,6 +598,6 @@ defmodule KV.Registry do
 
   end
 
-  # ======= Functions for Random Honeycomb Neighbour Generation End ===============#  
+  # ======= Functions for Random Honeycomb Neighbour Generation End ===============#
 
 end
