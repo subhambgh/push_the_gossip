@@ -19,15 +19,24 @@ defmodule PushTheGossip.Convergence do
   end
 
 
-  def handle_cast({:i_heard_it}, {time_start,  numNodes, count}) do
+  def handle_call({:i_heard_it}, _from, {time_start,  numNodes, count}) do
     
     new_count = count + 1
     if new_count >= numNodes do
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
     end
 
-    {:noreply, {time_start,  numNodes, new_count}}
+    {:reply, {time_start,  numNodes, new_count}, {time_start,  numNodes, new_count}}
   end
+
+
+  def handle_call({:i_heard_it_push}, _from, {time_start,  numNodes, count}) do
+    
+    IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
+
+    {:reply, {time_start,  numNodes, count}, {time_start,  numNodes, count}}
+  end
+
 
 end
 

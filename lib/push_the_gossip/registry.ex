@@ -237,7 +237,7 @@ defmodule KV.Registry do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1]})
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1, name]})
 
       adj_list =
         cond do
@@ -275,7 +275,7 @@ defmodule KV.Registry do
       {:ok, pid} =
         DynamicSupervisor.start_child(
           KV.BucketSupervisor,
-          {KV.PushSumRandom2D, [number_for_s, 1, name]}
+          {KV.PushSumLine, [number_for_s, 1, name]}
         )
 
       adj_list = Map.put(adj_list, name, neighbours)

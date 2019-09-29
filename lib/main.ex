@@ -10,6 +10,7 @@ defmodule KV.Main do
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       #IO.puts("Let's start with #{name} #1")
+      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
       GenServer.cast(random_pid, {:transrumor, "Infection!"})
     end
   end
@@ -239,7 +240,7 @@ defmodule KV.Main do
       {name, random_pid} = Enum.random(state)
       IO.puts("Let's start with")
       IO.inspect name
-      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), size(map_of_neighbours)] })
+      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), map_size(map_of_neighbours)] })
       GenServer.cast(random_pid, {:transrumor, "Infection!"})
       # run()
     end
@@ -259,6 +260,7 @@ defmodule KV.Main do
 
     if state != %{} do
       {_, random_pid} = Enum.random(state)
+      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
     end
   end
@@ -280,6 +282,7 @@ defmodule KV.Main do
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       IO.puts("Let's start with #{name}")
+      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
       # run()
     end
@@ -289,7 +292,7 @@ defmodule KV.Main do
 
   # ======================= Push Sum Random 2D Start ================================#
 
-  def push_sum_Random_2D(numNodes) do
+  def push_sum_random_2D(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
     # START here
@@ -302,6 +305,15 @@ defmodule KV.Main do
     map_of_neighbours = KV.Registry.generate_neighbours_for_random2D(nodeList)
     IO.puts "map_of_neighbours"
     IO.inspect (map_of_neighbours)
+
+    for i <- 1..numNodes do
+      # IO.puts("up here #{numNodes}")
+      GenServer.cast(
+        KV.Registry,
+        {:create_gossip_random_2D, [[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)], map_of_neighbours[[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)]]]}
+      )
+    end
+
 
     for i <- 1..numNodes do
       # IO.puts("up here #{numNodes}")
