@@ -1,48 +1,42 @@
 defmodule KV.GossipFull do
   use GenServer
 
-  def start_link(_opts) do
-    GenServer.start_link(__MODULE__, :ok, _opts)
+  def start_link([name]) do
+    GenServer.start_link(__MODULE__,name)
   end
 
   @impl true
-  def init(:ok) do
-    # Task.async(fn -> gossip() end)
-    # {:ok, count}
-    {:ok, 0}
+  def init(name) do
+    count=0
+    {:ok, {count, name}}
   end
 
-  def gossip() do
+  def gossip(name) do
     state = GenServer.call(KV.Registry, {:getState})
-
-    if state != %{} do
+    if state !=nil && state != %{} && Map.has_key?(state, name) do
       {_, neighbour_pid} = Enum.random(state)
-
       if neighbour_pid != self() do
         GenServer.cast(neighbour_pid, {:transrumor, "rumor"})
       end
     end
-
-    gossip()
+    gossip(name)
   end
 
   # this is the receive
   @impl true
-  def handle_cast({:transrumor, rumor}, count) do
-    
-
+  def handle_cast({:transrumor, rumor}, {count,name}) do
     if count == 0 do
       # infected _ now infect others
-      Task.async(fn -> gossip() end)
-      {:noreply, count + 1}
+      Task.async(fn -> gossip(name) end)
+      {:noreply, {count + 1,name}}
     else
       if count < 10 do
-        {:noreply, count + 1}
+        {:noreply, {count + 1,name}}
       else
-        # send(self(), :kill_me_pls)
-        IO.inspect(count)
-        Process.exit(self(), :kill)
-        {:noreply, count + 1}
+        #IO.inspect(count)
+        GenServer.call(KV.Registry, {:updateMap,name})
+        #Process.exit(self(), :count10)
+        {:noreply, {count + 1,name}}
       end
     end
   end

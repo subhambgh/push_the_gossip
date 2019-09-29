@@ -26,11 +26,11 @@ defmodule KV.PushSumRandom2D do
 
     {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
 
-    #IO.puts "some neighbour pid"
-    #IO.inspect(random_neighbour_pid)
+    # IO.puts "some neighbour pid"
+    # IO.inspect(random_neighbour_pid)
 
     if random_neighbour_pid != nil do
-      #IO.puts("#{my_name} sending to #{random_neighbour}")
+      # IO.puts("#{my_name} sending to #{random_neighbour}")
       GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_s}})
     else
       # incase the map is not initialized
