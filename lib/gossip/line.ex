@@ -12,26 +12,6 @@ defmodule KV.GossipLine do
     {:ok, {0, name}}
   end
 
-  # def gossip(my_name) do
-  #   {:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
-  #   if my_neighbours != [] && my_neighbours != nil do
-  #     random_neighbour = Enum.random(my_neighbours)
-  #     IO.puts("sending to #{random_neighbour} from #{my_name}")
-  #     {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
-  #     if random_neighbour_pid ==nil do
-  #       #when the random neighbour selected is dead in b/w the function calls
-  #       gossip(my_name)
-  #     end
-  #     GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
-  #   else
-  #     #remove empty list, %{...,10 => []} - remove 10 here
-  #     GenServer.call(KV.Registry, {:updateAdjList,my_name})
-  #     #no neighbours so converge the actor
-  #     Process.exit(self(), :noNeighbours)
-  #   end
-  #   gossip(my_name)
-  # end
-
   def gossip(my_name) do
     case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
       nil ->
@@ -41,6 +21,7 @@ defmodule KV.GossipLine do
         #IO.inspect({my_name,random_neighbour})
         GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
     end
+
     gossip(my_name)
   end
 
@@ -57,9 +38,13 @@ defmodule KV.GossipLine do
         #IO.inspect(count)
         {:noreply, {count + 1, name}}
       else
-        #update this registry is dead
-        GenServer.call(KV.Registry, {:updateAdjList,name})
-        #Process.exit(self(), :kill)
+        # update this registry is dead
+        GenServer.call(KV.Registry, {:updateAdjList, name})
+        # ---------------------imp-------------------
+        # most probably:-killing itself here causes the task created above to exit where
+        # it shuts down all the other actors as well
+        # ---------------------imp-------------------
+        # Process.exit(self(), :kill)
         {:noreply, {count + 1, name}}
       end
     end

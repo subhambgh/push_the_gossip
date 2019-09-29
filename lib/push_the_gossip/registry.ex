@@ -14,7 +14,7 @@ defmodule KV.Registry do
   end
 
   @impl true
-  
+
   def handle_call({:lookup, name}, _from, state) do
     {names, _, _} = state
     value = names[name]
@@ -22,46 +22,58 @@ defmodule KV.Registry do
   end
 
   @impl true
-  def handle_call({:updateAdjList,nameToDelete}, _from, {names, refs, adj_list}) do
+  def handle_call({:updateAdjList, nameToDelete}, _from, {names, refs, adj_list}) do
     # suppose nameToDelete = 2
     # 2=> [3,1]
     # 3 => [4,2] #so we have to delete 2 in the here
     # 1=> [2] #and here
-    #IO.inspect(adj_list)
-    if(adj_list == %{} || adj_list == nil)do
-      Enum.each(names, fn {k,v} ->
+    # IO.inspect(adj_list)
+    if(adj_list == %{} || adj_list == nil) do
+      Enum.each(names, fn {k, v} ->
         Process.exit(v, :kill)
       end)
     end
 
-    if adj_list[nameToDelete] == nil  do
+    # suppose nameToDelete = 2
+    # 2=> [3,1]
+    # 3 => [4,2] #so we have to delete 2 in the here
+    # 1=> [2] #and here
+
+    if adj_list[nameToDelete] == nil do
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
     else
-      keyList = adj_list[nameToDelete]                                #[3,1]
+      # [3,1]
+      keyList = adj_list[nameToDelete]
       # IO.puts("---- ")
       # IO.inspect(nameToDelete)
       # IO.inspect(keyList)
-      adj_list = Map.delete(adj_list,nameToDelete)
-      adj_list = Enum.reduce(keyList,adj_list, fn(key,acc) ->         #for each [3,1] , let say for 3
-      elementsList = adj_list[key]                              #[4,2]
-      #IO.inspect(_)
-      #IO.inspect(adj_list)
-      if elementsList == nil do
-        acc
-      else
-      updatedElementList = List.delete(elementsList, nameToDelete)  #[4]
-      Map.put(acc,key,updatedElementList)                           #add [3 => [4]]
-        
-      end
-      end)
+      adj_list = Map.delete(adj_list, nameToDelete)
+      # for each [3,1] , let say for 3
+      adj_list =
+        Enum.reduce(keyList, adj_list, fn key, acc ->
+          # [4,2]
+          elementsList = adj_list[key]
+          # IO.inspect(_)
+          # IO.inspect(adj_list)
+          if elementsList == nil do
+            acc
+          else
+            # [4]
+            updatedElementList = List.delete(elementsList, nameToDelete)
+            # add [3 => [4]]
+            Map.put(acc, key, updatedElementList)
+          end
+        end)
+
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
     end
   end
 
   @impl true
-  def handle_call({:getState}, _from, state) do
-    {:reply, elem(state, 0), state}
+  def handle_call({:getState}, _from, {names, refs, adj_list}) do
+      {:reply, names, {names, refs, adj_list}}
   end
+
 
 
   @impl true
@@ -77,8 +89,9 @@ defmodule KV.Registry do
 
   @impl true
   def handle_call({:getRandomNeighPidFromAdjList, myName}, _from, {names, refs, adj_list}) do
-    #IO.puts("#{myName}"<>inspect(adj_list))
+    # IO.puts(inspect(adj_list))
     my_neighbours = adj_list[myName]
+
     if my_neighbours != [] && my_neighbours != nil do
       random_neighbour = Enum.random(my_neighbours)
       {:reply, [random_neighbour, names[random_neighbour]], {names, refs, adj_list}}
@@ -90,16 +103,17 @@ defmodule KV.Registry do
   # ======================= Gossip Full Start ================================#
 
   @impl true
-  def handle_cast({:create_gossip_full, name}, {names, refs, adj_list}) do
+  def handle_call({:create_gossip_full, name},_from, {names, refs, adj_list}) do
     # IO.puts("Creating #{name}")
     if Map.has_key?(names, name) do
-      {:noreply, {names, refs, adj_list}}
+      {:reply, {names, refs, adj_list},{names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.GossipFull)
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.GossipFull, [name]})
+
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-      {:noreply, {names, refs, adj_list}}
+      {:reply,{names, refs, adj_list}, {names, refs, adj_list}}
     end
   end
 
@@ -151,8 +165,6 @@ defmodule KV.Registry do
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
 
-
-
       {:noreply, {names, refs, adj_list}}
     end
   end
@@ -180,7 +192,10 @@ defmodule KV.Registry do
   # ======================= Gossip Honeycomb Start ================================#
 
   @impl true
-  def handle_cast({:create_gossip_honeycomb, [name, numNodes, neighbours]}, {names, refs, adj_list}) do
+  def handle_cast(
+        {:create_gossip_honeycomb, [name, numNodes, neighbours]},
+        {names, refs, adj_list}
+      ) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
@@ -192,14 +207,11 @@ defmodule KV.Registry do
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
 
-
-
       {:noreply, {names, refs, adj_list}}
     end
   end
 
   # ===================== Gossip Honeycomb End ==============================#
-
 
   # ===================== Push Sum Full Start ==============================#
 
@@ -253,19 +265,24 @@ defmodule KV.Registry do
   # ======================= Push Sum Random 2D Start ================================#
 
   @impl true
-  def handle_cast({:create_push_random_2D, [name, number_for_s, numNodes, neighbours]}, {names, refs, adj_list}) do
+  def handle_cast(
+        {:create_push_random_2D, [name, number_for_s, numNodes, neighbours]},
+        {names, refs, adj_list}
+      ) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumRandom2D, [number_for_s, 1, name]})
+      {:ok, pid} =
+        DynamicSupervisor.start_child(
+          KV.BucketSupervisor,
+          {KV.PushSumRandom2D, [number_for_s, 1, name]}
+        )
 
       adj_list = Map.put(adj_list, name, neighbours)
 
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-
-
 
       {:noreply, {names, refs, adj_list}}
     end
@@ -308,6 +325,19 @@ defmodule KV.Registry do
     {:noreply, {names, refs, adj_list}}
   end
 
+  #implemented for gossip full only
+  def handle_call({:updateMap,nameToDelete},_from, {names, refs, adj_list}) do
+    #IO.inspect(names)
+    if map_size(names) != 0 do
+      names = Map.delete(names, nameToDelete)
+      refs = Map.delete(refs, nameToDelete)
+      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
+    else
+      IO.puts("converzed")
+      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
+    end
+  end
+
   @impl true
   def handle_info(_msg, state) do
     {:noreply, state}
@@ -340,8 +370,12 @@ defmodule KV.Registry do
     Map.new()
 
 
+    node_coordinates
+    |> Enum.map(fn pos ->
+      {pos, Enum.filter(List.delete(node_coordinates, pos), &(distance(pos, &1) < 0.1))}
+    end)
+    |> Map.new()
   end
-
 
   # ======== Functions for Random 2D Neighbour Generation End =================#
 
@@ -422,46 +456,49 @@ defmodule KV.Registry do
         z <- 1..rowcnt,
         do: Enum.uniq(List.flatten(nodeListMaker(x, y, z, rowcnt, rowcnt_square)))
   end
-  # ======= Functions for 3D torus Neighbour Generation End ===============#  
 
-  # ======= Functions for Honeycomb Neighbour Generation ===============#  
+  # ======= Functions for 3D torus Neighbour Generation End ===============#
 
+  # ======= Functions for Honeycomb Neighbour Generation ===============#
 
   def add_edges(point_a, point_b, adjacency_map) do
-    
-    neighbour_of_a = Enum.uniq ( [ point_b | adjacency_map[point_a] ] )
+    neighbour_of_a = Enum.uniq([point_b | adjacency_map[point_a]])
 
-    neighbour_of_b = Enum.uniq( [ point_a | adjacency_map[point_b] ] )
+    neighbour_of_b = Enum.uniq([point_a | adjacency_map[point_b]])
 
     adjacency_map = Map.put(adjacency_map, point_a, neighbour_of_a)
 
     adjacency_map = Map.put(adjacency_map, point_b, neighbour_of_b)
 
     adjacency_map
-
   end
 
   def connections_of_hexagons(list_of_points, adjacency_map) do
-    
-    adjacency_map = add_edges(Enum.at(list_of_points,0), Enum.at(list_of_points,1), adjacency_map)
+    adjacency_map =
+      add_edges(Enum.at(list_of_points, 0), Enum.at(list_of_points, 1), adjacency_map)
 
-    adjacency_map = add_edges(Enum.at(list_of_points,0), Enum.at(list_of_points,2), adjacency_map)
+    adjacency_map =
+      add_edges(Enum.at(list_of_points, 0), Enum.at(list_of_points, 2), adjacency_map)
 
-    adjacency_map = add_edges(Enum.at(list_of_points,1), Enum.at(list_of_points,3), adjacency_map)
+    adjacency_map =
+      add_edges(Enum.at(list_of_points, 1), Enum.at(list_of_points, 3), adjacency_map)
 
-    adjacency_map = add_edges(Enum.at(list_of_points,2), Enum.at(list_of_points,4), adjacency_map)
+    adjacency_map =
+      add_edges(Enum.at(list_of_points, 2), Enum.at(list_of_points, 4), adjacency_map)
 
-    adjacency_map = add_edges(Enum.at(list_of_points,3), Enum.at(list_of_points,5), adjacency_map)
+    adjacency_map =
+      add_edges(Enum.at(list_of_points, 3), Enum.at(list_of_points, 5), adjacency_map)
 
-    adjacency_map = add_edges(Enum.at(list_of_points,4), Enum.at(list_of_points,5), adjacency_map)    
-
+    adjacency_map =
+      add_edges(Enum.at(list_of_points, 4), Enum.at(list_of_points, 5), adjacency_map)
   end
 
   def add_point_to_adjacency_map(point, adjacency_map) do
-    adjacency_map = cond do
-                      Map.has_key?(adjacency_map, point) == false-> Map.put(adjacency_map, point, [])
-                      true -> adjacency_map
-                    end
+    adjacency_map =
+      cond do
+        Map.has_key?(adjacency_map, point) == false -> Map.put(adjacency_map, point, [])
+        true -> adjacency_map
+      end
   end
 
   def make_hexagons_nodes(hexagon_x, hexagon_y, numNodes, adjacency_map) do
@@ -470,22 +507,22 @@ defmodule KV.Registry do
 
     offset = if rem(hexagon_y, 2) == 0, do: 0, else: 1
 
-    point_1 = [ hexagon_x * 2 + 1 + offset, hexagon_y * 2]
+    point_1 = [hexagon_x * 2 + 1 + offset, hexagon_y * 2]
 
-    point_2 = [ hexagon_x * 2 + offset, hexagon_y * 2 + 1]
+    point_2 = [hexagon_x * 2 + offset, hexagon_y * 2 + 1]
 
-    point_3 = [ hexagon_x * 2 + 2 + offset, hexagon_y * 2 + 1]
+    point_3 = [hexagon_x * 2 + 2 + offset, hexagon_y * 2 + 1]
 
-    point_4 = [ hexagon_x * 2 + offset, hexagon_y * 2 + 2]
+    point_4 = [hexagon_x * 2 + offset, hexagon_y * 2 + 2]
 
-    point_5 = [ hexagon_x * 2 + 2 + offset, hexagon_y * 2 + 2]
+    point_5 = [hexagon_x * 2 + 2 + offset, hexagon_y * 2 + 2]
 
-    point_6 = [ hexagon_x * 2 + 1 + offset, hexagon_y * 2 + 3]
+    point_6 = [hexagon_x * 2 + 1 + offset, hexagon_y * 2 + 3]
 
     list_of_points = [point_1, point_2, point_3, point_4, point_5, point_6]
 
     initial_size = map_size(adjacency_map)
-    #IO.puts "initial_size: #{initial_size}"
+    # IO.puts "initial_size: #{initial_size}"
 
     adjacency_map = add_point_to_adjacency_map(point_1, adjacency_map)
 
@@ -500,14 +537,13 @@ defmodule KV.Registry do
     adjacency_map = add_point_to_adjacency_map(point_6, adjacency_map)
 
     final_size = map_size(adjacency_map)
-    #IO.puts "final_size: #{final_size}"
+    # IO.puts "final_size: #{final_size}"
 
     adjacency_map = connections_of_hexagons(list_of_points, adjacency_map)
 
-    newNumNodes = numNodes - ( final_size - initial_size)
+    newNumNodes = numNodes - (final_size - initial_size)
 
     {newNumNodes, adjacency_map}
-
   end
 
   def inner_loop(i, j, numNodes, adjacency_map) do
@@ -516,34 +552,22 @@ defmodule KV.Registry do
       
       #IO.puts("Done with #{i}")
       {numNodes, adjacency_map}
-
     else
+      # IO.puts("from inner loop #{i} #{j} #{numNodes}")
 
-
-      #IO.puts("from inner loop #{i} #{j} #{numNodes}")
-
-      {newNumNodes, new_adjacency_map} = make_hexagons_nodes(j, i, numNodes, adjacency_map) 
-
-      
+      {newNumNodes, new_adjacency_map} = make_hexagons_nodes(j, i, numNodes, adjacency_map)
 
       if newNumNodes <= 0 or i == j do
-        
         {newNumNodes, new_adjacency_map}
-
       else
+        # IO.puts("from inner loop 2nd part #{i} #{j} #{newNumNodes}")
 
-        #IO.puts("from inner loop 2nd part #{i} #{j} #{newNumNodes}")
-        
-        {newNumNodes2, new_adjacency_map} = make_hexagons_nodes(i, j, newNumNodes, new_adjacency_map) 
+        {newNumNodes2, new_adjacency_map} =
+          make_hexagons_nodes(i, j, newNumNodes, new_adjacency_map)
 
-        inner_loop(i, j+1, newNumNodes2, new_adjacency_map)
-
+        inner_loop(i, j + 1, newNumNodes2, new_adjacency_map)
       end
-
-      
-  
     end
-  
   end
 
   def outer_loop(i, numNodes, adjacency_map) do
@@ -551,54 +575,49 @@ defmodule KV.Registry do
     if numNodes <= 0 do 
       #IO.puts "Done"
       adjacency_map
-      
-    
-    else 
-
-      #IO.puts("from outer_loop loop #{i} #{numNodes}")
+    else
+      # IO.puts("from outer_loop loop #{i} #{numNodes}")
 
       {newNumNodes, adjacency_map} = inner_loop(i, 0, numNodes, adjacency_map)
 
-      outer_loop(i+1, newNumNodes, adjacency_map)
-
+      outer_loop(i + 1, newNumNodes, adjacency_map)
     end
-
   end
 
-  # ======= Functions for Honeycomb Neighbour Generation End ===============#  
+  # ======= Functions for Honeycomb Neighbour Generation End ===============#
 
-  # ======= Functions for Random Honeycomb Neighbour Generation ===============#  
+  # ======= Functions for Random Honeycomb Neighbour Generation ===============#
 
   def add_random_nodes(i, list_of_nodes, adjacency_map) do
-    
     if i == length(list_of_nodes) do
       adjacency_map
-    
-    else    
-      #IO.puts "#{i}"
+    else
+      # IO.puts "#{i}"
 
-      node_to_add = Enum.random((list_of_nodes -- [Enum.at(list_of_nodes, i)]) -- adjacency_map[Enum.at(list_of_nodes,i)])
+      node_to_add =
+        Enum.random(
+          (list_of_nodes -- [Enum.at(list_of_nodes, i)]) --
+            adjacency_map[Enum.at(list_of_nodes, i)]
+        )
 
       #IO.inspect(node_to_add)
 
-      adjacency_map_new = Map.put(adjacency_map, Enum.at(list_of_nodes, i), [node_to_add | adjacency_map[Enum.at(list_of_nodes,i)]])
+      adjacency_map_new =
+        Map.put(adjacency_map, Enum.at(list_of_nodes, i), [
+          node_to_add | adjacency_map[Enum.at(list_of_nodes, i)]
+        ])
 
-      add_random_nodes( i+1, list_of_nodes, adjacency_map_new)
-
+      add_random_nodes(i + 1, list_of_nodes, adjacency_map_new)
     end
-
   end
 
   def random_honeycomb(adjacency_map) do
-    
-    list_of_nodes = Enum.map(adjacency_map, fn {k,v} -> k end)
+    list_of_nodes = Enum.map(adjacency_map, fn {k, v} -> k end)
 
     #IO.inspect(length(list_of_nodes))
 
     add_random_nodes(0, list_of_nodes, adjacency_map)
-
   end
 
-  # ======= Functions for Random Honeycomb Neighbour Generation End ===============#  
-
+  # ======= Functions for Random Honeycomb Neighbour Generation End ===============#
 end
