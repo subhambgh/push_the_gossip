@@ -18,16 +18,18 @@ defmodule KV.PushSumRandom2D do
   def handle_cast({:send, {received_s, received_w}}, {s, w, count, my_name}) do
     # IO.puts("#{inspect(self())} #{received_s} #{received_w}")
 
-    {:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
-    IO.inspect(my_neighbours)
-    state = GenServer.call(KV.Registry, {:getState})
+    #:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
+    #IO.inspect(my_neighbours)
+    #state = GenServer.call(KV.Registry, {:getState})
 
-    random_neighbour = Enum.random(my_neighbours)
+    #random_neighbour = Enum.random(my_neighbours)
 
-    {:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
+    #{:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
 
     # IO.puts "some neighbour pid"
     # IO.inspect(random_neighbour_pid)
+
+    [random_neighbour, random_neighbour_pid] = GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name})
 
     if random_neighbour_pid != nil do
       # IO.puts("#{my_name} sending to #{random_neighbour}")

@@ -15,11 +15,10 @@ defmodule KV.GossipLine do
   def gossip(my_name) do
     case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
       nil ->
-        GenServer.call(KV.Registry, {:updateAdjList, my_name})
-
-      # Process.exit(self(), :kill)
-      {sendingto, random_neighbour_pid} ->
-        IO.puts("#{my_name} sending to #{sendingto}")
+        GenServer.call(KV.Registry, {:updateAdjList,my_name})
+        #Process.exit(self(), :kill)
+      [random_neighbour, random_neighbour_pid] ->
+        #IO.inspect({my_name,random_neighbour})
         GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
     end
 
@@ -32,10 +31,11 @@ defmodule KV.GossipLine do
     if count == 0 do
       # infected _ now infect others
       Task.async(fn -> gossip(name) end)
+      GenServer.call(PushTheGossip.Convergence, {:i_heard_it, name})
       {:noreply, {count + 1, name}}
     else
-      if count < 10 do
-        # IO.inspect(count)
+      if count < 100 do
+        #IO.inspect(count)
         {:noreply, {count + 1, name}}
       else
         # update this registry is dead

@@ -1,4 +1,4 @@
-defmodule KV.Bucket2 do
+  defmodule KV.Bucket2 do
   use GenServer
 
   def start_link([s, w]) do
@@ -52,7 +52,8 @@ defmodule KV.Bucket2 do
 
     if count >= 3 do
       # V.VampireState.print(V.VampireState)
-      Process.exit(self(), :kill)
+      GenServer.call(PushTheGossip.Convergence,{:i_heard_it_push})
+      #Process.exit(self(), :kill)
       {:noreply, {s, w, count}}
     else
       # gossip(s,w)

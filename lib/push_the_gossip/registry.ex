@@ -10,7 +10,7 @@ defmodule KV.Registry do
     names = %{}
     refs = %{}
     adj_list = %{}
-    {:ok, {names, refs, adj_list}}
+    {:ok, {names, refs, adj_list}} 
   end
 
   @impl true
@@ -75,6 +75,12 @@ defmodule KV.Registry do
   end
 
 
+
+  @impl true
+  def handle_call({:getStateAdj}, _from, state) do
+    {:reply, elem(state, 2), state}
+  end
+
   @impl true
   def handle_call({:getAdjList, myName}, _from, state) do
     {_, _, adj_list} = state
@@ -88,7 +94,7 @@ defmodule KV.Registry do
 
     if my_neighbours != [] && my_neighbours != nil do
       random_neighbour = Enum.random(my_neighbours)
-      {:reply, {random_neighbour, names[random_neighbour]}, {names, refs, adj_list}}
+      {:reply, [random_neighbour, names[random_neighbour]], {names, refs, adj_list}}
     else
       {:reply, nil, {names, refs, adj_list}}
     end
@@ -147,10 +153,7 @@ defmodule KV.Registry do
   # ======================= Gossip Random 2D Start ================================#
 
   @impl true
-  def handle_cast(
-        {:create_gossip_random_2D, [name, numNodes, neighbours]},
-        {names, refs, adj_list}
-      ) do
+  def handle_cast({:create_gossip_random_2D, [name, neighbours]}, {names, refs, adj_list}) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
@@ -234,7 +237,7 @@ defmodule KV.Registry do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1]})
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1, name]})
 
       adj_list =
         cond do
@@ -272,7 +275,7 @@ defmodule KV.Registry do
       {:ok, pid} =
         DynamicSupervisor.start_child(
           KV.BucketSupervisor,
-          {KV.PushSumRandom2D, [number_for_s, 1, name]}
+          {KV.PushSumLine, [number_for_s, 1, name]}
         )
 
       adj_list = Map.put(adj_list, name, neighbours)
@@ -313,9 +316,8 @@ defmodule KV.Registry do
     # handle failure according to the reason
     {name, refs} = Map.pop(refs, ref)
     names = Map.delete(names, name)
-    IO.puts("killed #{IO.inspect name, charlists: :as_lists} with reason "<>inspect(reason))
-    #IO.inspect(name, charlists: :as_lists)
-
+    #IO.puts("killed #{IO.inspect name, charlists: :as_lists} with reason "<>inspect(reason))
+    #IO.inspect name, charlists: :as_lists
     if map_size(names) == 0 do
       send(self(), {:justfinish})
     end
@@ -347,24 +349,26 @@ defmodule KV.Registry do
     if length(node_list) == numNodes do
       node_list
     else
-      new_node_list = [[:rand.uniform(10) / 10, :rand.uniform(10) / 10] | node_list]
+      new_node_list = Enum.uniq([ [:rand.uniform(10000) / 10000, :rand.uniform(10000) / 10000] | node_list])
       generate_random_2D(numNodes, new_node_list)
     end
   end
 
   def distance(x, y) do
-    # IO.inspect [x, y]
-    round(
-      :math.sqrt(
-        :math.pow(Enum.at(x, 0) - Enum.at(y, 0), 2) + :math.pow(Enum.at(x, 1) - Enum.at(y, 1), 2)
-      )
-    )
+    #IO.inspect [x, y]
+    :math.sqrt( :math.pow((Enum.at(x,0)-Enum.at(y,0)), 2) + :math.pow((Enum.at(x,1)-Enum.at(y,1)), 2))
   end
 
-  def generate_neighbours_for_random2D(numNodes, node_coordinates) do
-    # neighbours = generate_empty_neighbour_list_for_random_2D(numNodes
+  def generate_neighbours_for_random2D(node_coordinates) do
 
-    # map_of_neighbours = for i <- 1..numNodes, into: %{}, do: {i, []}
+    #neighbours = generate_empty_neighbour_list_for_random_2D(numNodes
+
+    #map_of_neighbours = for i <- 1..numNodes, into: %{}, do: {i, []}
+
+    node_coordinates |>
+    Enum.map(fn pos -> {pos, Enum.filter(List.delete(node_coordinates,pos), &(distance(pos, &1) <= 0.1))} end) |>
+    Map.new()
+
 
     node_coordinates
     |> Enum.map(fn pos ->
@@ -498,7 +502,8 @@ defmodule KV.Registry do
   end
 
   def make_hexagons_nodes(hexagon_x, hexagon_y, numNodes, adjacency_map) do
-    IO.puts("Creating hexagon #{hexagon_x}, #{hexagon_y} ")
+
+    #IO.puts "Creating hexagon #{hexagon_x}, #{hexagon_y} "
 
     offset = if rem(hexagon_y, 2) == 0, do: 0, else: 1
 
@@ -542,8 +547,10 @@ defmodule KV.Registry do
   end
 
   def inner_loop(i, j, numNodes, adjacency_map) do
-    if j == i + 1 or numNodes <= 0 do
-      IO.puts("Done with #{i}")
+
+    if j == i+1 or numNodes <= 0 do
+      
+      #IO.puts("Done with #{i}")
       {numNodes, adjacency_map}
     else
       # IO.puts("from inner loop #{i} #{j} #{numNodes}")
@@ -564,8 +571,9 @@ defmodule KV.Registry do
   end
 
   def outer_loop(i, numNodes, adjacency_map) do
-    if numNodes <= 0 do
-      IO.puts("Done")
+
+    if numNodes <= 0 do 
+      #IO.puts "Done"
       adjacency_map
     else
       # IO.puts("from outer_loop loop #{i} #{numNodes}")
@@ -592,7 +600,7 @@ defmodule KV.Registry do
             adjacency_map[Enum.at(list_of_nodes, i)]
         )
 
-      IO.inspect(node_to_add)
+      #IO.inspect(node_to_add)
 
       adjacency_map_new =
         Map.put(adjacency_map, Enum.at(list_of_nodes, i), [
@@ -606,7 +614,7 @@ defmodule KV.Registry do
   def random_honeycomb(adjacency_map) do
     list_of_nodes = Enum.map(adjacency_map, fn {k, v} -> k end)
 
-    IO.inspect(length(list_of_nodes))
+    #IO.inspect(length(list_of_nodes))
 
     add_random_nodes(0, list_of_nodes, adjacency_map)
   end
