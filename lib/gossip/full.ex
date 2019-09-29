@@ -40,7 +40,7 @@ defmodule KV.GossipFull do
         {:noreply, count + 1}
       else
         # send(self(), :kill_me_pls)
-        IO.inspect(count)
+        #IO.inspect(count)
         Process.exit(self(), :kill)
         {:noreply, count + 1}
       end
