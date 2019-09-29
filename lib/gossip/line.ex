@@ -15,12 +15,14 @@ defmodule KV.GossipLine do
   def gossip(my_name) do
     case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
       nil ->
-        GenServer.call(KV.Registry, {:updateAdjList,my_name})
-        #Process.exit(self(), :kill)
-      {sendingto,random_neighbour_pid} ->
+        GenServer.call(KV.Registry, {:updateAdjList, my_name})
+
+      # Process.exit(self(), :kill)
+      {sendingto, random_neighbour_pid} ->
         IO.puts("#{my_name} sending to #{sendingto}")
         GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
     end
+
     gossip(my_name)
   end
 
@@ -33,16 +35,16 @@ defmodule KV.GossipLine do
       {:noreply, {count + 1, name}}
     else
       if count < 10 do
-        #IO.inspect(count)
+        # IO.inspect(count)
         {:noreply, {count + 1, name}}
       else
-        #update this registry is dead
-        GenServer.call(KV.Registry, {:updateAdjList,name})
+        # update this registry is dead
+        GenServer.call(KV.Registry, {:updateAdjList, name})
         # ---------------------imp-------------------
         # most probably:-killing itself here causes the task created above to exit where
         # it shuts down all the other actors as well
         # ---------------------imp-------------------
-        #Process.exit(self(), :kill)
+        # Process.exit(self(), :kill)
         {:noreply, {count + 1, name}}
       end
     end
