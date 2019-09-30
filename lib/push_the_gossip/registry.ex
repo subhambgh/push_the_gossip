@@ -29,7 +29,7 @@ defmodule KV.Registry do
       refs = Map.delete(refs, nameToDelete)
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
     else
-      IO.puts("converzed")
+      #IO.puts("converzed")
       {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
     end
   end
@@ -46,6 +46,7 @@ defmodule KV.Registry do
     # 3 => [4,2] #so we have to delete 2 in the here
     # 1=> [2] #and here
     # IO.inspect(adj_list)
+
     if(adj_list == %{} || adj_list == nil) do
       Enum.each(names, fn {k, v} ->
         Process.exit(v, :kill)
