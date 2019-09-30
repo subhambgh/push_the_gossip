@@ -53,6 +53,7 @@ defmodule PushTheGossip.Convergence do
     new_list_of_nodes = list_of_nodes -- [name]
     #IO.puts("Not Converged #{inspect new_list_of_nodes}")
     #IO.puts("#{length(new_list_of_nodes)}")
+    #10 % convergence
     if length(new_list_of_nodes) <= numNodes/10 do
       converged_or_not   = 1
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")

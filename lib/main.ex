@@ -103,8 +103,6 @@ defmodule KV.Main do
      IO.puts("perfect_cube #{perfect_cube}!")
     end
     list_of_neighbours = KV.Registry.generate3d(numNodes, rowcnt, rowcnt_square)
-    #IO.inspect(list_of_neighbours)
-    #IO.puts("#{length(list_of_neighbours)}")
     for i <- 1..perfect_cube do
       GenServer.cast(
         KV.Registry,
@@ -113,7 +111,6 @@ defmodule KV.Main do
     end
     state = GenServer.call(KV.Registry, {:getState})
     nodeList = Enum.map(state, fn {k,v} -> k end)
-    #IO.inspect(state)
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), perfect_cube,nodeList] })
@@ -303,11 +300,11 @@ defmodule KV.Main do
       GenServer.cast(
         KV.Registry,
         {:create_push_honeycomb, [
-                             i, 
+                             i,
 
                              map_of_neighbours[
                                [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)]
-                             ], 
+                             ],
 
                              [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)]
                           ]}
@@ -358,12 +355,12 @@ defmodule KV.Main do
       GenServer.cast(
         KV.Registry,
         {:create_push_honeycomb, [
-                             i, 
+                             i,
 
                              map_of_neighbours[
                                [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)]
-                             ], 
-                             
+                             ],
+
                              [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)]
                           ]}
       )
@@ -383,5 +380,5 @@ defmodule KV.Main do
     end
   end
 
-  # ======================= Push Sum Random Honeycomb End ================================#    
+  # ======================= Push Sum Random Honeycomb End ================================#
 end
