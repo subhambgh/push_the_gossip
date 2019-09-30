@@ -10,7 +10,7 @@ defmodule KV.Registry do
     names = %{}
     refs = %{}
     adj_list = %{}
-    {:ok, {names, refs, adj_list}} 
+    {:ok, {names, refs, adj_list}}
   end
 
   @impl true
@@ -549,7 +549,7 @@ defmodule KV.Registry do
   def inner_loop(i, j, numNodes, adjacency_map) do
 
     if j == i+1 or numNodes <= 0 do
-      
+
       #IO.puts("Done with #{i}")
       {numNodes, adjacency_map}
     else
@@ -572,7 +572,7 @@ defmodule KV.Registry do
 
   def outer_loop(i, numNodes, adjacency_map) do
 
-    if numNodes <= 0 do 
+    if numNodes <= 0 do
       #IO.puts "Done"
       adjacency_map
     else

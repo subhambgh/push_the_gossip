@@ -92,14 +92,14 @@ defmodule KV.Main do
 
   def gossip_3D(numNodes) do
 
-    
+
     rowcnt = round(:math.pow(numNodes, 1 / 3))
     rowcnt_square = rowcnt * rowcnt
     perfect_cube = :math.pow(rowcnt,3)
     if numNodes != perfect_cube do
-     IO.puts("perfect_cube #{perfect_cube}!")  
+     IO.puts("perfect_cube #{perfect_cube}!")
     end
-    
+
     list_of_neighbours = KV.Registry.generate3d(numNodes, rowcnt, rowcnt_square)
     IO.inspect(list_of_neighbours)
 
@@ -127,7 +127,7 @@ defmodule KV.Main do
   def gossip_honeycomb(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
-    map_of_neighbours = KV.Registry.outer_loop(0,numNodes,%{}) 
+    map_of_neighbours = KV.Registry.outer_loop(0,numNodes,%{})
     #IO.puts "map_of_neighbours"
     #IO.inspect (map_of_neighbours)
 
@@ -186,9 +186,9 @@ defmodule KV.Main do
   def gossip_random_honeycomb(numNodes) do
     # IO.puts("really up here #{numNodes}")
 
-    map = KV.Registry.outer_loop(0,numNodes,%{}) 
-    
-    map_of_neighbours = KV.Registry.random_honeycomb(map) 
+    map = KV.Registry.outer_loop(0,numNodes,%{})
+
+    map_of_neighbours = KV.Registry.random_honeycomb(map)
     #IO.puts "map"
     #IO.inspect (map_of_neighbours)
 
