@@ -474,7 +474,6 @@ defmodule KV.Registry do
   end
 
   def generate3d(numNodes, rowcnt, rowcnt_square) do
-    # IO.puts("#{rowcnt}")
     for x <- 1..rowcnt,
         y <- 1..rowcnt,
         z <- 1..rowcnt,

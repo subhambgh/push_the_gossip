@@ -34,9 +34,7 @@ defmodule KV.GossipFull do
       if count < 10 do
         {:noreply, {count + 1,name}}
       else
-        #IO.inspect(count)
         GenServer.call(KV.Registry, {:updateMap,name})
-        #Process.exit(self(), :count10)
         {:noreply, {count + 1,name}}
       end
     end
