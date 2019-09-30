@@ -16,31 +16,18 @@ defmodule KV.PushSumLine do
 
   # def gossip(s,w) do
   def handle_cast({:send, {received_s, received_w}}, {s, w, count, my_name}) do
-    # IO.puts("#{inspect(self())} #{received_s} #{received_w}")
-
-    #{:ok, my_neighbours} = GenServer.call(KV.Registry, {:getAdjList, my_name})
-    # IO.inspect(my_neighbours)
-    #state = GenServer.call(KV.Registry, {:getState})
-
-    #random_neighbour = Enum.random(my_neighbours)
-
-    #{:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
-
-    [random_neighbour, random_neighbour_pid] = GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name})
-
-    # IO.inspect(random_neighbour_pid)
-
-    if random_neighbour_pid != nil do
-      #IO.puts("#{my_name} sending to #{random_neighbour}")
-      GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_s}})
-    else
-      # incase the map is not initialized
-
-      GenServer.cast(self(), {:send, {received_s, received_w}})
+    case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
+      nil ->
+        GenServer.call(KV.Registry, {:updateAdjList,my_name})
+        #Process.exit(self(), :kill)
+      [random_neighbour, random_neighbour_pid] ->
+        #IO.inspect({my_name,random_neighbour})
+        #GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
+        GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_w}})
     end
-
     {:noreply, {s, w, count, my_name}}
   end
+
 
   # this is the receive
   @impl true
@@ -58,15 +45,20 @@ defmodule KV.PushSumLine do
 
     if count >= 3 do
       # V.VampireState.print(V.VampireState)
+
+      case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
+        nil -> nil
+          #Process.exit(self(), :kill)
+        [random_neighbour, random_neighbour_pid] ->
+          #IO.inspect({my_name,random_neighbour})
+          #GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
+          GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_w}})
+      end
+
       GenServer.call(KV.Registry, {:updateAdjList,my_name})
 
       new_list_of_nodes = GenServer.call(PushTheGossip.Convergence,{:i_heard_it_remove_me, my_name })
-      
-      #IO.puts "new_list_of_nodes for #{my_name}"
-      IO.inspect new_list_of_nodes
-      if new_list_of_nodes != [] do
-        GenServer.cast(self(), {:send, {s, w}})
-      end
+
       #Process.exit(self(), :kill)
       {:noreply, {s, w, count, my_name}}
     else
