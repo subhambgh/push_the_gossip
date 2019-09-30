@@ -24,6 +24,7 @@ defmodule KV.PushSumLine do
   # this is the receive
   @impl true
   def handle_cast({:receive, {received_s, received_w}}, {s, w, count, my_name}) do
+    IO.puts("#{inspect my_name} received_s = #{received_s} received_w =#{received_w}")
     old_ratio = s / w
     s = received_s + s
     w = received_w + w
@@ -32,8 +33,10 @@ defmodule KV.PushSumLine do
     w = w / 2
     change = abs(old_ratio - new_ratio)
     count = if change > :math.pow(10, -10), do: 0, else: count + 1
-
+    IO.puts("#{inspect my_name} #{change} #{count}")
     if count >= 3 do
+      #not sending call to send up here, cause its a cast
+      #and we are using call below to updateAdjList
       case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
         nil -> nil
         [random_neighbour, random_neighbour_pid] ->

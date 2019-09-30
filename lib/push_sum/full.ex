@@ -39,8 +39,7 @@
     w = w / 2
     change = abs(old_ratio - new_ratio)
     count = if change > :math.pow(10, -10), do: 0, else: count + 1
-    #IO.puts("#{inspect(self())} #{received_s} #{received_w} #{count}")
-
+    IO.puts("#{inspect my_name} #{change} #{count}")
     if count >= 3 do
       GenServer.call(KV.Registry, {:updateMap,my_name})
       new_list_of_nodes = GenServer.call(PushTheGossip.Convergence,{:i_heard_it_remove_me, my_name })

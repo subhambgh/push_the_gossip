@@ -1,7 +1,7 @@
 defmodule KV.Main do
 
   def periodicallyGossip(state) do
-    Process.sleep(100)
+    Process.sleep(1000)
     randomNodeNotConverged = Enum.random(GenServer.call(PushTheGossip.Convergence,{:getState}))
     if randomNodeNotConverged != [] || randomNodeNotConverged != nil do
         GenServer.cast(Map.get(state,randomNodeNotConverged), {:transrumor, "Infection!"})
@@ -252,31 +252,21 @@ defmodule KV.Main do
   # ======================= Push Sum 3D Start ================================#
 
   def push_sum_3D(numNodes) do
-    # IO.puts("really up here #{numNodes}")
-
     rowcnt = round(:math.pow(numNodes, 1 / 3))
     rowcnt_square = rowcnt * rowcnt
-
     list_of_neighbours = KV.Registry.generate3d(numNodes, rowcnt, rowcnt_square)
-    IO.inspect(list_of_neighbours)
-
     for i <- 1..numNodes do
-      # IO.puts("up here #{numNodes}")
       GenServer.cast(
         KV.Registry,
         {:create_push_3D, [i, Enum.at(list_of_neighbours, i - 1)]}
       )
     end
-
-    IO.puts("Done creating")
-
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-    IO.inspect(state)
-
+    nodeList = Enum.map(state, fn {k,v} -> k end)
     if state != %{} do
       {name, random_pid} = Enum.random(state)
-      IO.puts("Let's start with #{name}")
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
       periodicallyPush(state)
     end
@@ -287,16 +277,9 @@ defmodule KV.Main do
   # ======================= Push Sum Honeycomb Start ================================#
 
   def push_sum_honeycomb(numNodes) do
-    # IO.puts("really up here #{numNodes}")
-
     map_of_neighbours = KV.Registry.outer_loop(0,numNodes,%{})
-    #IO.puts "map_of_neighbours"
-    #IO.inspect (map_of_neighbours)
-
     nodeList = Enum.map(map_of_neighbours, fn {k, v} -> k end)
-
     for i <- 1..numNodes do
-      # IO.puts("up here #{numNodes}")
       GenServer.cast(
         KV.Registry,
         {:create_push_honeycomb, [
@@ -310,18 +293,13 @@ defmodule KV.Main do
                           ]}
       )
     end
-
-    IO.puts("Done creating")
-
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-    IO.inspect(state)
-
     if state != %{} do
       {name, random_pid} = Enum.random(state)
-      IO.puts("Let's start with #{name}")
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
-      # run()
+      periodicallyPush(state)
     end
   end
 
@@ -330,28 +308,11 @@ defmodule KV.Main do
   # ======================= Push Sum Random Honeycomb Start ================================#
 
   def push_sum_random_honeycomb(numNodes) do
-    # IO.puts("really up here #{numNodes}")
-
     map = KV.Registry.outer_loop(0,numNodes,%{})
-
     map_of_neighbours = KV.Registry.random_honeycomb(map)
-    #IO.puts "map"
-    #IO.inspect (map_of_neighbours)
-
-
-    IO.puts"[27,20]"
-    IO.inspect map_of_neighbours[[27,20]]
-
     map_of_neighbours = KV.Registry.random_honeycomb(map)
-
-    IO.puts("map")
-    IO.inspect(map_of_neighbours)
-
     nodeList = Enum.map(map_of_neighbours, fn {k, v} -> k end)
-
-
     for i <- 1..numNodes do
-      # IO.puts("up here #{numNodes}")
       GenServer.cast(
         KV.Registry,
         {:create_push_honeycomb, [
@@ -365,18 +326,13 @@ defmodule KV.Main do
                           ]}
       )
     end
-
-    IO.puts("Done creating")
-
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-    IO.inspect(state)
-
     if state != %{} do
       {name, random_pid} = Enum.random(state)
-      IO.puts("Let's start with #{name}")
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
-      # run()
+      periodicallyPush(state)
     end
   end
 

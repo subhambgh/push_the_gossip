@@ -22,7 +22,7 @@ defmodule PushTheGossip.Convergence do
     time_start = value_time
     numNodes = value_numNodes
     list_of_nodes = value_list
-    {:noreply, {time_start,  numNodes, count, list_of_nodes}}
+    {:noreply, {time_start,numNodes, count, list_of_nodes}}
   end
 
   def handle_call({:i_heard_it_push}, _from, {time_start,  numNodes, count, list_of_nodes}) do
@@ -32,9 +32,9 @@ defmodule PushTheGossip.Convergence do
 
   def handle_call({:i_heard_it_remove_me, name}, _from, {time_start,  numNodes, count, list_of_nodes}) do
     new_list_of_nodes = list_of_nodes -- [name]
+    #IO.puts("converzed #{inspect name}")
     #90 % convergence
     if length(new_list_of_nodes) <= numNodes/10 do
-      converged_or_not   = 1
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
       System.halt(1)
     end
