@@ -314,15 +314,6 @@ defmodule KV.Main do
       # IO.puts("up here #{numNodes}")
       GenServer.cast(
         KV.Registry,
-        {:create_gossip_random_2D, [[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)], map_of_neighbours[[Enum.at(Enum.at(nodeList,i-1),0), Enum.at(Enum.at(nodeList,i-1),1)]]]}
-      )
-    end
-
-
-    for i <- 1..numNodes do
-      # IO.puts("up here #{numNodes}")
-      GenServer.cast(
-        KV.Registry,
         {:create_push_random_2D,
          [
            [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)],
@@ -346,6 +337,7 @@ defmodule KV.Main do
       {name, random_pid} = Enum.random(state)
       IO.puts("Let's start with")
       IO.inspect(name)
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
       # run()
     end
@@ -368,7 +360,7 @@ defmodule KV.Main do
       # IO.puts("up here #{numNodes}")
       GenServer.cast(
         KV.Registry,
-        {:create_push_3D, [i, numNodes, Enum.at(list_of_neighbours, i - 1)]}
+        {:create_push_3D, [i, Enum.at(list_of_neighbours, i - 1)]}
       )
     end
 

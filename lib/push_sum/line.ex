@@ -26,13 +26,25 @@ defmodule KV.PushSumLine do
 
     #{:ok, random_neighbour_pid} = GenServer.call(KV.Registry, {:lookup, random_neighbour})
 
-    [random_neighbour, random_neighbour_pid] = GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name})
+    #IO.puts("here")
+    #[random_neighbour, random_neighbour_pid] = GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name})
 
-    # IO.inspect(random_neighbour_pid)
+    case GenServer.call(KV.Registry, {:getRandomNeighPidFromAdjList, my_name}) do
+      nil ->
+        GenServer.call(KV.Registry, {:updateAdjList,my_name})
+        #Process.exit(self(), :kill)
+      [random_neighbour, random_neighbour_pid] ->
+        #IO.inspect({my_name,random_neighbour})
+        GenServer.cast(random_neighbour_pid, {:transrumor, "Infected!"})
+    end
+
+
+    #IO.puts("Random neighbour pid")
+    #IO.inspect(random_neighbour_pid)
 
     if random_neighbour_pid != nil do
       #IO.puts("#{my_name} sending to #{random_neighbour}")
-      GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_s}})
+      GenServer.cast(random_neighbour_pid, {:receive, {received_s, received_w}})
     else
       # incase the map is not initialized
 
@@ -62,7 +74,7 @@ defmodule KV.PushSumLine do
 
       new_list_of_nodes = GenServer.call(PushTheGossip.Convergence,{:i_heard_it_remove_me, my_name })
       
-      #IO.puts "new_list_of_nodes for #{my_name}"
+      IO.puts "new_list_of_nodes for #{my_name}"
       IO.inspect new_list_of_nodes
       if new_list_of_nodes != [] do
         GenServer.cast(self(), {:send, {s, w}})
