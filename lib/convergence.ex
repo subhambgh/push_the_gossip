@@ -28,7 +28,7 @@ defmodule PushTheGossip.Convergence do
   end
 
   def handle_call({:i_heard_it}, _from, {time_start,  numNodes, count, list_of_nodes, converged_or_not}) do
-    
+
     new_count = count + 1
     if new_count >= numNodes do
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
@@ -40,7 +40,7 @@ defmodule PushTheGossip.Convergence do
 
 
   def handle_call({:i_heard_it_push}, _from, {time_start,  numNodes, count, list_of_nodes, converged_or_not}) do
-    
+
     IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
 
     {:reply, {time_start,  numNodes, count}, {time_start,  numNodes, count, list_of_nodes, converged_or_not}}
@@ -48,8 +48,8 @@ defmodule PushTheGossip.Convergence do
 
 
   def handle_call({:i_heard_it_remove_me, name}, _from, {time_start,  numNodes, count, list_of_nodes, converged_or_not}) do
-    
-    #new_count = count + 1 
+
+    #new_count = count + 1
     new_list_of_nodes = list_of_nodes -- [name]
     #IO.puts "Converged #{name}"
     #IO.inspect new_list_of_nodes
@@ -57,14 +57,14 @@ defmodule PushTheGossip.Convergence do
     if length(new_list_of_nodes) == 0 or length(new_list_of_nodes) == 1 do
       converged_or_not   = 1
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
-      
+
     end
 
     {:reply, new_list_of_nodes, {time_start,  numNodes, count, new_list_of_nodes, converged_or_not}}
   end
 
   def handle_call() do
-    
+
   end
 
 
@@ -93,12 +93,12 @@ end
 
 
 #   def handle_cast({:i_heard_it, name}, {time_start,  numNodes, count}) do
-    
-#     #new_count = count + 1 
+
+#     #new_count = count + 1
 #     newNUms = numNodes -- [name]
 #     #if new_count >= numNodes do
 #     if length(newNUms) == 0  do
-      
+
 #       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
 #     end
 

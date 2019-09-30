@@ -27,11 +27,11 @@
       else
         # incase if the random pid is self, resend the incoming msg
           # if neighbour_pid == self() do
-      GenServer.cast(self(), {:send, {received_s, received_w}})  
+      GenServer.cast(self(), {:send, {received_s, received_w}})
           # else
           #   Process.kill(self(), :kill)
           # end
-          
+
       end
     else
       # incase the map is not initialized
@@ -58,10 +58,10 @@
 
     if count >= 3 do
       # V.VampireState.print(V.VampireState)
-      
+
       GenServer.call(KV.Registry, {:updateMap,my_name})
       new_list_of_nodes = GenServer.call(PushTheGossip.Convergence,{:i_heard_it_remove_me, my_name })
-      
+
       #IO.puts "new_list_of_nodes for #{my_name}"
       #IO.inspect new_list_of_nodes
       if new_list_of_nodes != [] do
