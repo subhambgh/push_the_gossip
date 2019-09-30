@@ -329,6 +329,29 @@ defmodule KV.Registry do
 
   # ===================== Push Sum 3D End ==============================#
 
+ # ======================= Push Sum Honeycomb Start ================================#
+
+  @impl true
+  def handle_cast({:create_push_honeycomb, [s, neighbours, name]}, {names, refs, adj_list}) do
+    if Map.has_key?(names, name) do
+      {:noreply, {names, refs, adj_list}}
+    else
+      IO.puts("creating #{name}")
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [s, 1, name]})
+
+      adj_list = Map.put(adj_list, name, neighbours)
+      ref = Process.monitor(pid)
+      refs = Map.put(refs, ref, name)
+      names = Map.put(names, name, pid)
+
+      {:noreply, {names, refs, adj_list}}
+    end
+  end
+
+  # ===================== Push Sum Honeycomb End ==============================#
+
+
+
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, reason}, {names, refs, adj_list}) do
     # handle failure according to the reason
