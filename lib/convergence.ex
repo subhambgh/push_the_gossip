@@ -15,6 +15,7 @@ defmodule PushTheGossip.Convergence do
   end
 
   def handle_call({:getState},_from ,{time_start,  numNodes, count, list_of_nodes, converged_or_not}) do
+    #IO.inspect(list_of_nodes)
     {:reply,list_of_nodes ,{time_start,  numNodes, count, list_of_nodes, converged_or_not}}
   end
 

@@ -31,7 +31,8 @@ defmodule KV.GossipLine do
     if count == 0 do
       # infected _ now infect others
       Task.async(fn -> gossip(name) end)
-      GenServer.call(PushTheGossip.Convergence, {:i_heard_it_remove_me,name})
+      nodeList = GenServer.call(PushTheGossip.Convergence, {:i_heard_it_remove_me,name})
+      IO.inspect(nodeList)
       {:noreply, {count + 1, name}}
     else
       if count < 100 do
