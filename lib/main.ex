@@ -202,23 +202,17 @@ defmodule KV.Main do
   # ===================== Push Sum Line Start ==============================#
 
   def push_sum_line(numNodes) do
-    # IO.puts("really up here #{numNodes}")
     for i <- 1..numNodes do
-      # IO.puts("up here #{numNodes}")
       GenServer.cast(KV.Registry, {:create_push_line, [i, numNodes]})
     end
-
     nodeList = Enum.map(1..numNodes, fn n -> n end)
-
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-
     if state != %{} do
       {name, random_pid} = Enum.random(state)
-      IO.puts("Let's start with #{name}")
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
-      # run()
+      periodicallyPush(state)
     end
   end
 
@@ -227,21 +221,9 @@ defmodule KV.Main do
   # ======================= Push Sum Random 2D Start ================================#
 
   def push_sum_random_2D(numNodes) do
-    # IO.puts("really up here #{numNodes}")
-
-    # START here
-
-    # pass empty list first
     nodeList = KV.Registry.generate_random_2D(numNodes, [])
-    IO.puts("nodeList")
-    IO.inspect(nodeList)
-
     map_of_neighbours = KV.Registry.generate_neighbours_for_random2D(nodeList)
-    IO.puts "map_of_neighbours"
-    IO.inspect (map_of_neighbours)
-
     for i <- 1..numNodes do
-      # IO.puts("up here #{numNodes}")
       GenServer.cast(
         KV.Registry,
         {:create_push_random_2D,
@@ -255,18 +237,10 @@ defmodule KV.Main do
          ]}
       )
     end
-
-    # IO.puts("Done creating")
-
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-    IO.puts("state")
-    IO.inspect(state)
-
     if state != %{} do
       {name, random_pid} = Enum.random(state)
-      IO.puts("Let's start with")
-      IO.inspect(name)
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
       periodicallyPush(state)
