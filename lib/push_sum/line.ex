@@ -58,7 +58,6 @@ defmodule KV.PushSumLine do
       GenServer.call(KV.Registry, {:updateAdjList,my_name})
 
       new_list_of_nodes = GenServer.call(PushTheGossip.Convergence,{:i_heard_it_remove_me, my_name })
-
       #Process.exit(self(), :kill)
       {:noreply, {s, w, count, my_name}}
     else
