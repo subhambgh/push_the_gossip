@@ -21,6 +21,24 @@ defmodule KV.Registry do
     {:reply, value, state}
   end
 
+  #implemented for full topologies only
+  def handle_call({:updateMap,nameToDelete},_from, {names, refs, adj_list}) do
+    #IO.inspect(names)
+    if map_size(names) != 0 do
+      names = Map.delete(names, nameToDelete)
+      refs = Map.delete(refs, nameToDelete)
+      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
+    else
+      IO.puts("converzed")
+      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
+    end
+  end
+
+  @impl true
+  def handle_info(_msg, state) do
+    {:noreply, state}
+  end
+
   @impl true
   def handle_call({:updateAdjList, nameToDelete}, _from, {names, refs, adj_list}) do
     # suppose nameToDelete = 2
@@ -323,24 +341,6 @@ defmodule KV.Registry do
     end
 
     {:noreply, {names, refs, adj_list}}
-  end
-
-  #implemented for gossip full only
-  def handle_call({:updateMap,nameToDelete},_from, {names, refs, adj_list}) do
-    #IO.inspect(names)
-    if map_size(names) != 0 do
-      names = Map.delete(names, nameToDelete)
-      refs = Map.delete(refs, nameToDelete)
-      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
-    else
-      IO.puts("converzed")
-      {:reply, {names, refs, adj_list}, {names, refs, adj_list}}
-    end
-  end
-
-  @impl true
-  def handle_info(_msg, state) do
-    {:noreply, state}
   end
 
   # ======== Functions for Random 2D Neighbour Generation =================#
