@@ -36,7 +36,7 @@ defmodule KV.PushSumLine do
     else
       # incase the map is not initialized
 
-      GenServer.cast(self(), {:gossip, {received_s, received_w}})
+      GenServer.cast(self(), {:send, {received_s, received_w}})
     end
 
     {:noreply, {s, w, count, my_name}}
@@ -58,7 +58,15 @@ defmodule KV.PushSumLine do
 
     if count >= 3 do
       # V.VampireState.print(V.VampireState)
-      GenServer.call(PushTheGossip.Convergence,{:i_heard_it_push})
+      GenServer.call(KV.Registry, {:updateAdjList,my_name})
+
+      new_list_of_nodes = GenServer.call(PushTheGossip.Convergence,{:i_heard_it_remove_me, my_name })
+      
+      #IO.puts "new_list_of_nodes for #{my_name}"
+      IO.inspect new_list_of_nodes
+      if new_list_of_nodes != [] do
+        GenServer.cast(self(), {:send, {s, w}})
+      end
       #Process.exit(self(), :kill)
       {:noreply, {s, w, count, my_name}}
     else

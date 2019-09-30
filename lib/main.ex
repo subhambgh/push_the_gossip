@@ -255,12 +255,14 @@ defmodule KV.Main do
       GenServer.cast(KV.Registry, {:create_push_full, i})
     end
 
+    nodeList = Enum.map(1..numNodes, fn n -> n end)
+
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
 
     if state != %{} do
       {_, random_pid} = Enum.random(state)
-      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
     end
   end
@@ -276,13 +278,15 @@ defmodule KV.Main do
       GenServer.cast(KV.Registry, {:create_push_line, [i, numNodes]})
     end
 
+    nodeList = Enum.map(1..numNodes, fn n -> n end)
+
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
 
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       IO.puts("Let's start with #{name}")
-      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
       GenServer.cast(random_pid, {:receive, {0, 0}})
       # run()
     end
