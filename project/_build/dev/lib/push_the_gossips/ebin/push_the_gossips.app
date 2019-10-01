@@ -1,0 +1,11 @@
+{application,push_the_gossips,
+             [{applications,[kernel,stdlib,elixir,logger]},
+              {description,"push_the_gossips"},
+              {modules,['Elixir.AdjacencyHelper','Elixir.Gossip','Elixir.KV',
+                        'Elixir.KV.Registry','Elixir.KV.Supervisor',
+                        'Elixir.Main','Elixir.PushSum.Full',
+                        'Elixir.PushSum.Rest',
+                        'Elixir.PushTheGossip.Convergence']},
+              {registered,[]},
+              {vsn,"0.1.0"},
+              {mod,{'Elixir.KV',[]}}]}.
