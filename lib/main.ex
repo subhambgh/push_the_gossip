@@ -1,4 +1,4 @@
-defmodule KV.Main do
+defmodule Main do
 
   def periodicallyGossip(state) do
     Process.sleep(1000)
@@ -23,17 +23,16 @@ defmodule KV.Main do
   end
 
   # ======================= Gossip Full Start ================================#
-  def gossip_full(numNodes) do
-    for i <- 1..numNodes do
-      GenServer.call(KV.Registry, {:create_gossip_full, i})
+  #topology are gossip_full, gossip_line
+  def gossip(numNodes,topology) do
+    nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
+    for i <- 0..numNodes-1 do
+      GenServer.call(KV.Registry, {:create_gossip,
+      %{name: Enum.at(nodeList,i),numNodes: numNodes,topology: topology, nodeList: nodeList}})
     end
-
-    nodeList = Enum.map(1..numNodes, fn n -> n end)
     state = GenServer.call(KV.Registry, {:getState})
-
     if state != %{} do
       {name, random_pid} = Enum.random(state)
-      #IO.puts("Let's start with #{name} #1")
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes,nodeList] })
       GenServer.cast(random_pid, {:transrumor, "Infection!"})
       periodicallyGossip(state)
@@ -42,26 +41,6 @@ defmodule KV.Main do
 
   # ======================= Gossip Full End ================================#
 
-  # ======================= Gossip Line Start ================================#
-
-  def gossip_line(numNodes) do
-    for i <- 1..numNodes do
-      GenServer.cast(KV.Registry, {:create_gossip_line, [i, numNodes]})
-    end
-
-    nodeList = Enum.map(1..numNodes, fn n -> n end)
-    # initialize
-    state = GenServer.call(KV.Registry, {:getState})
-
-    if state != %{} do
-      {name, random_pid} = Enum.random(state)
-        GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes,nodeList] })
-      GenServer.cast(random_pid, {:transrumor, "Infection!"})
-      periodicallyGossip(state)
-    end
-  end
-
-  # ======================= Gossip Line End ================================#
 
   # ======================= Gossip Random 2D Start ================================#
 

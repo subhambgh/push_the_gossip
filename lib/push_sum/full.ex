@@ -7,7 +7,8 @@
 
   @impl true
   def init([s, w]) do
-    {:ok, {s, w, 0, s}}
+    name = s
+    {:ok, {s, w, 0, name}}
   end
 
   def handle_cast({:send, {received_s, received_w}}, {s, w, count, my_name}) do

@@ -122,13 +122,12 @@ defmodule KV.Registry do
   # ======================= Gossip Full Start ================================#
 
   @impl true
-  def handle_call({:create_gossip_full, name},_from, {names, refs, adj_list}) do
-    # IO.puts("Creating #{name}")
+  def handle_call({:create_gossip, state},_from, {names, refs, adj_list}) do
+    name = state.name
     if Map.has_key?(names, name) do
       {:reply, {names, refs, adj_list},{names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.GossipFull, [name]})
-
+      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {Gossip, state})
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
@@ -138,36 +137,6 @@ defmodule KV.Registry do
 
   # ======================= Gossip Full End ================================#
 
-  # ======================= Gossip Line Start ================================#
-
-  @impl true
-  def handle_cast({:create_gossip_line, [name, numNodes]}, {names, refs, adj_list}) do
-    if Map.has_key?(names, name) do
-      {:noreply, {names, refs, adj_list}}
-    else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.GossipLine, [name]})
-
-      adj_list =
-        cond do
-          name == 1 ->
-            Map.put(adj_list, name, [name + 1])
-
-          name == numNodes ->
-            Map.put(adj_list, name, [name - 1])
-
-          true ->
-            Map.put(adj_list, name, [name - 1, name + 1])
-        end
-
-      ref = Process.monitor(pid)
-      refs = Map.put(refs, ref, name)
-      names = Map.put(names, name, pid)
-
-      {:noreply, {names, refs, adj_list}}
-    end
-  end
-
-  # ===================== Gossip Line End ==============================#
 
   # ======================= Gossip Random 2D Start ================================#
 
@@ -352,7 +321,7 @@ defmodule KV.Registry do
     # handle failure according to the reason
     {name, refs} = Map.pop(refs, ref)
     names = Map.delete(names, name)
-    #IO.puts("killed #{IO.inspect name, charlists: :as_lists} with reason "<>inspect(reason))
+    IO.puts("killed #{IO.inspect name} with reason "<>inspect(reason))
     #IO.inspect name, charlists: :as_lists
     if map_size(names) == 0 do
       send(self(), {:justfinish})
@@ -382,11 +351,6 @@ defmodule KV.Registry do
     #neighbours = generate_empty_neighbour_list_for_random_2D(numNodes
 
     #map_of_neighbours = for i <- 1..numNodes, into: %{}, do: {i, []}
-
-    node_coordinates |>
-    Enum.map(fn pos -> {pos, Enum.filter(List.delete(node_coordinates,pos), &(distance(pos, &1) <= 0.1))} end) |>
-    Map.new()
-
 
     node_coordinates
     |> Enum.map(fn pos ->
