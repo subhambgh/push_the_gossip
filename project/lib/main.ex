@@ -1,5 +1,21 @@
 defmodule Main do
 
+  def start(numNodes,topology,algorithm) do
+    case algorithm do
+      "gossip" ->
+        Main.gossip(numNodes,topology)
+        "push-sum"->
+          case topology do
+            "full" ->Main.push_sum_full(numNodes)
+            "line" ->Main.push_sum_line(numNodes)
+            "rand2D" ->Main.push_sum_random_2D(numNodes)
+            "3Dtorus" ->Main.push_sum_3D(numNodes)
+            "honeycomb" ->Main.push_sum_honeycomb(numNodes)
+            "randhoneycomb" ->Main.push_sum_random_honeycomb(numNodes)
+          end
+    end
+  end
+
   def periodicallyGossip(state) do
     Process.sleep(100)
     randomNodeNotConverged = Enum.random(GenServer.call(PushTheGossip.Convergence,{:getState}))
@@ -29,7 +45,7 @@ defmodule Main do
   #topology are gossip_full, gossip_line
   def gossip(numNodes,topology) do
     cond do
-      Enum.member?(["gossip_full","gossip_line","gossip_random_2D"],topology) ->
+      Enum.member?(["full","line","rand2D"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
         for i <- 1..numNodes do
         _=  GenServer.call(KV.Registry, {:create_gossip,
@@ -42,9 +58,9 @@ defmodule Main do
           GenServer.cast(random_pid, {:transrumor, "Infection!"})
           periodicallyGossip(state)
         end
-      topology == "gossip_3D" ->
+      topology == "3Dtorus" ->
         gossip3D(numNodes)
-      Enum.member?(["gossip_honeycomb","gossip_random_honeycomb"],topology) ->
+      Enum.member?(["honeycomb","randhoneycomb"],topology) ->
         gossipHoneycombAndRandomHoneyComb(numNodes,topology)
     end
   end
@@ -66,7 +82,7 @@ defmodule Main do
     for i <- 1..perfect_cube do
       _=GenServer.call(
         KV.Registry,{:create_gossip,
-        %{name: i,numNodes: numNodes,topology: "gossip_3D", nodeList: list_of_neighbours,numbering: nil}})
+        %{name: i,numNodes: numNodes,topology: "3Dtorus", nodeList: list_of_neighbours,numbering: nil}})
     end
     state = GenServer.call(KV.Registry, {:getState})
     nodeList = Enum.map(state, fn {k,v} -> k end)
@@ -133,42 +149,6 @@ defmodule Main do
 
   # ======================= Gossip Random Honeycomb End ================================#
 
-  #=============================Push Sum All in One ====================================#
-
-  def push_sum(numNodes,topology) do
-    #nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
-    # pids = Enum.map(
-    #     1..numNodes,
-    #     fn n ->
-
-    #       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {Gossip, [n]})
-    #       [n,pid]
-
-    #     end
-
-    #   )
-
-    nodeList = Enum.map(1..numNodes, fn n -> n end)
-
-    for i <- 1..numNodes do
-      GenServer.cast(KV.Registry, {:create_push_full, i})
-    end
-
-    state = GenServer.call(KV.Registry, {:getState})
-    IO.inspect(state)
-    if state != %{} do
-      {name, random_pid} = Enum.random(state)
-      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes,nodeList] })
-      GenServer.cast(random_pid,  {:receive, {0, 0}})
-      periodicallyPush(state)
-    end
-  end
-
-
-
-  #===========================Push Sum All in One End ==================================#
-
-
   # ===================== Push Sum Full Start ==============================#
 
   def push_sum_full(numNodes) do
@@ -185,7 +165,7 @@ defmodule Main do
     if state != %{} do
 
       for i <- 1..numNodes do
-        new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1)) 
+        new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1))
         GenServer.cast(Enum.at(list_of_pids, i - 1), {:update_neighbours, new_list_of_pids})
       end
 
@@ -225,7 +205,7 @@ defmodule Main do
     if state != %{} do
 
       for i <- 1..numNodes do
-        #new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1)) 
+        #new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1))
         GenServer.cast(state[i], {:update_neighbours, Enum.at(node_neighbour_pid_list, i - 1)})
       end
 
@@ -274,7 +254,7 @@ defmodule Main do
 
     if state != %{} do
 
-      
+
       for i <- 1..numNodes do
         GenServer.cast(state[Enum.at(nodeList, i-1)], {:update_neighbours, node_neighbour_pid_map[Enum.at(nodeList, i-1)]})
       end
@@ -306,7 +286,7 @@ defmodule Main do
     state = GenServer.call(KV.Registry, {:getState})
     nodeList = Enum.map(state, fn {k,v} -> k end)
 
-    node_neighbour_pid_map = 
+    node_neighbour_pid_map =
         Enum.map(list_of_neighbours, fn list_of_a_neighbour ->
 
           Enum.map( list_of_a_neighbour, fn n->
@@ -368,7 +348,7 @@ defmodule Main do
     )
 
     # initialize
-    
+
     # IO.inspect(nodeList)
     # IO.inspect(state)
     # IO.inspect(map_of_neighbours)

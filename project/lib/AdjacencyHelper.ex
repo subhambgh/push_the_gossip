@@ -2,10 +2,10 @@ defmodule AdjacencyHelper do
   def getAdjList(topology,numNodes,name,nodeList) do
     adj_list =
     case topology do
-      "gossip_full" ->
+      "full" ->
         Enum.map(1..numNodes, fn i -> i end)
 
-      "gossip_line" ->
+      "line" ->
         cond do
           name == 1 ->
             [name+1]
@@ -15,18 +15,18 @@ defmodule AdjacencyHelper do
             [name - 1, name + 1]
         end
 
-      "gossip_random_2D" ->
+      "rand2D" ->
         generate_neighbours_for_random2D(name,nodeList)
 
-      "gossip_3D" ->
+      "3Dtorus" ->
         #nodeList is list_of_neighbours
         Enum.at(nodeList, name - 1)
 
-      "gossip_honeycomb"->
+      "honeycomb"->
         #nodeList is map_of_neighbours
          nodeList[name]
 
-      "gossip_random_honeycomb"->
+      "randhoneycomb"->
          nodeList[name]
     end
   end
@@ -34,19 +34,19 @@ defmodule AdjacencyHelper do
   def getNodeList(topology,numNodes) do
     nodeList =
       case topology do
-        "gossip_full" ->
+        "full" ->
           Enum.map(1..numNodes, fn i -> i end)
 
-        "gossip_line" ->
+        "line" ->
           Enum.map(1..numNodes, fn i -> i end)
 
-        "gossip_random_2D" ->
+        "rand2D" ->
           generate_random_2D(numNodes,[])
 
-        "gossip_honeycomb"->
+        "honeycomb"->
           outer_loop(0,numNodes,%{})
 
-        "gossip_random_honeycomb"->
+        "randhoneycomb"->
           random_honeycomb(outer_loop(0,numNodes,%{}))
 
       end
