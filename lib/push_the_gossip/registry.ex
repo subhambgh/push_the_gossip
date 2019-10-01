@@ -316,14 +316,11 @@ defmodule KV.Registry do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      IO.puts("creating #{name}")
       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1, name]})
-
       adj_list = Map.put(adj_list, name, neighbours)
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-
       {:noreply, {names, refs, adj_list}}
     end
   end
@@ -337,14 +334,11 @@ defmodule KV.Registry do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      IO.puts("creating #{name}")
       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [s, 1, name]})
-
       adj_list = Map.put(adj_list, name, neighbours)
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
-
       {:noreply, {names, refs, adj_list}}
     end
   end
@@ -474,7 +468,6 @@ defmodule KV.Registry do
   end
 
   def generate3d(numNodes, rowcnt, rowcnt_square) do
-    # IO.puts("#{rowcnt}")
     for x <- 1..rowcnt,
         y <- 1..rowcnt,
         z <- 1..rowcnt,
