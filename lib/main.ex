@@ -159,6 +159,28 @@ defmodule Main do
 
   # ======================= Gossip Random Honeycomb End ================================#
 
+  #=============================Push Sum All in One ====================================#
+
+  def push_sum(numNodes,topology) do
+    nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
+    for i <- 0..numNodes-1 do
+      GenServer.call(KV.Registry, {:create_push_sum,
+      %{name: Enum.at(nodeList,i),numNodes: numNodes,topology: topology, nodeList: nodeList}})
+    end
+    state = GenServer.call(KV.Registry, {:getState})
+    if state != %{} do
+      {name, random_pid} = Enum.random(state)
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes,nodeList] })
+      GenServer.cast(random_pid, {:transrumor, "Infection!"})
+      periodicallyPush(state)
+    end
+  end
+
+
+
+  #===========================Push Sum All in One End ==================================#
+
+
   # ===================== Push Sum Full Start ==============================#
 
   def push_sum_full(numNodes) do
