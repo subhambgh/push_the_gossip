@@ -14,7 +14,6 @@ defmodule KV.Registry do
   end
 
   @impl true
-
   def handle_call({:lookup, name}, _from, state) do
     {names, _, _} = state
     value = names[name]
@@ -105,32 +104,6 @@ defmodule KV.Registry do
       {:reply, names, {names, refs, adj_list}}
   end
 
-
-
-  @impl true
-  def handle_call({:getStateAdj}, _from, state) do
-    {:reply, elem(state, 2), state}
-  end
-
-  @impl true
-  def handle_call({:getAdjList, myName}, _from, state) do
-    {_, _, adj_list} = state
-    {:reply, Map.fetch(adj_list, myName), state}
-  end
-
-  @impl true
-  def handle_call({:getRandomNeighPidFromAdjList, myName}, _from, {names, refs, adj_list}) do
-    # IO.puts(inspect(adj_list))
-    my_neighbours = adj_list[myName]
-
-    if my_neighbours != [] && my_neighbours != nil do
-      random_neighbour = Enum.random(my_neighbours)
-      {:reply, [random_neighbour, names[random_neighbour]], {names, refs, adj_list}}
-    else
-      {:reply, nil, {names, refs, adj_list}}
-    end
-  end
-
   # ======================= Gossip Full Start ================================#
 
   @impl true
@@ -139,7 +112,8 @@ defmodule KV.Registry do
     if Map.has_key?(names, name) do
       {:reply, {names, refs, adj_list},{names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {Gossip, state})
+      #{:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {Gossip, state})
+      {:ok, pid} = GenServer.start_link(Gossip, state)
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
@@ -349,13 +323,13 @@ defmodule KV.Registry do
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, reason}, {names, refs, adj_list}) do
     # handle failure according to the reason
-    {name, refs} = Map.pop(refs, ref)
-    names = Map.delete(names, name)
-    IO.puts("killed #{IO.inspect name} with reason "<>inspect(reason))
+    #{name, refs} = Map.pop(refs, ref)
+    #names = Map.delete(names, name)
+    #IO.puts("killed #{IO.inspect name} with reason "<>inspect(reason))
     #IO.inspect name, charlists: :as_lists
-    if map_size(names) == 0 do
-      send(self(), {:justfinish})
-    end
+    # if map_size(names) == 0 do
+    #   send(self(), {:justfinish})
+    # end
 
     {:noreply, {names, refs, adj_list}}
   end
@@ -654,5 +628,4 @@ defmodule KV.Registry do
     add_random_nodes(0, list_of_nodes, adjacency_map)
   end
 
-  # ======= Functions for Random Honeycomb Neighbour Generation End ===============#
 end
