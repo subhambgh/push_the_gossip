@@ -12,7 +12,7 @@ defmodule PushTheGossips.MixProject do
     ]
   end
 
-  def escript do
+  def escript() do
     [main_module: PushTheGossip.Main]
   end
 

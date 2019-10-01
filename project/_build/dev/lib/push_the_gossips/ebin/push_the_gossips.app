@@ -3,9 +3,9 @@
               {description,"push_the_gossips"},
               {modules,['Elixir.AdjacencyHelper','Elixir.Gossip','Elixir.KV',
                         'Elixir.KV.Registry','Elixir.KV.Supervisor',
-                        'Elixir.Main','Elixir.PushSum.Full',
-                        'Elixir.PushSum.Rest',
-                        'Elixir.PushTheGossip.Convergence']},
+                        'Elixir.PushSum.Full','Elixir.PushSum.Rest',
+                        'Elixir.PushTheGossip.Convergence',
+                        'Elixir.PushTheGossip.Main']},
               {registered,[]},
               {vsn,"0.1.0"},
               {mod,{'Elixir.KV',[]}}]}.
