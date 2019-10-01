@@ -1,4 +1,31 @@
-defmodule Main do
+defmodule PushTheGossip.Main do
+
+  def main(args) do
+    IO.inspect(args)
+  end
+
+  def start(args) do
+    argList = String.split(args," ")
+    IO.puts("#{argList} ")
+    numNodes = Integer.parse(Enum.at(argList,0))
+    topology = Kernel.inspect(Enum.at(argList,1))
+    algorithm = Kernel.inspect(Enum.at(argList,2))
+    noOfNodesToFail =Integer.parse(Enum.at(argList,3))
+    IO.puts("#{args} #{argList} #{numNodes} #{topology} #{algorithm} #{noOfNodesToFail}")
+    case algorithm do
+      "gossip" ->
+        gossip(numNodes,topology,noOfNodesToFail)
+        "push-sum"->
+          case topology do
+            "full" ->push_sum_full(numNodes)
+            "line" ->push_sum_line(numNodes)
+            "rand2D" ->push_sum_random_2D(numNodes)
+            "3Dtorus" ->push_sum_3D(numNodes)
+            "honeycomb" ->push_sum_honeycomb(numNodes)
+            "randhoneycomb" ->push_sum_random_honeycomb(numNodes)
+          end
+    end
+  end
 
   def periodicallyGossip(state) do
     Process.sleep(100)
@@ -25,54 +52,71 @@ defmodule Main do
     end
   end
 
+  def getARandomNodeExcludingFailedOnes(state,failedNodeNamesList) do
+    {randomName, randomPid} = Enum.random(state)
+    #IO.puts("#{randomName} #{failedNodeNamesList}")
+    IO.inspect randomName
+    if Enum.member?(failedNodeNamesList,randomName) do
+      getARandomNodeExcludingFailedOnes(state,failedNodeNamesList)
+    else
+      randomPid
+    end
+  end
+
   # ======================= Gossip Start ================================#
   #topology are gossip_full, gossip_line
-  def gossip(numNodes,topology) do
+  def gossip(numNodes,topology,noOfNodesToFail) do
     cond do
-      Enum.member?(["gossip_full","gossip_line","gossip_random_2D"],topology) ->
+      Enum.member?(["full","line","rand2D"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
         for i <- 1..numNodes do
         _=  GenServer.call(KV.Registry, {:create_gossip,
           %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: topology, nodeList: nodeList,numbering: i}})
         end
         state = GenServer.call(KV.Registry, {:getState})
+        failedNodeNamesList = Enum.map(1..noOfNodesToFail, fn i ->
+          GenServer.call(KV.FailureHelper,{:gossip_failure,state})
+        end)
+        #IO.inspect failedNodeNamesList
         if state != %{} do
-          {name, random_pid} = Enum.random(state)
-          GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes,nodeList] })
+          random_pid = getARandomNodeExcludingFailedOnes(state,failedNodeNamesList)
+          GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes-noOfNodesToFail,nodeList] })
           GenServer.cast(random_pid, {:transrumor, "Infection!"})
           periodicallyGossip(state)
         end
-      topology == "gossip_3D" ->
-        gossip3D(numNodes)
-      Enum.member?(["gossip_honeycomb","gossip_random_honeycomb"],topology) ->
-        gossipHoneycombAndRandomHoneyComb(numNodes,topology)
+        topology == "3Dtorus" ->
+          gossip3D(numNodes,noOfNodesToFail)
+        Enum.member?(["honeycomb","randhoneycomb"],topology) ->
+          gossipHoneycombAndRandomHoneyComb(numNodes,topology,noOfNodesToFail)
     end
   end
 
   # ======================= Gossip End ================================#
 
-
-
   # ======================= Gossip 3D Start ================================#
 
-  def gossip3D(numNodes) do
+  def gossip3D(numNodes,noOfNodesToFail) do
     rowcnt = round(:math.pow(numNodes, 1 / 3))
     rowcnt_square = rowcnt * rowcnt
     perfect_cube = round(:math.pow(rowcnt,3))
     if numNodes != perfect_cube do
-     IO.puts("perfect_cube #{perfect_cube}!")
+     #IO.puts("perfect_cube #{perfect_cube}!")
     end
     list_of_neighbours = AdjacencyHelper.getNodeListFor3D(numNodes, rowcnt, rowcnt_square)
     for i <- 1..perfect_cube do
       _=GenServer.call(
         KV.Registry,{:create_gossip,
-        %{name: i,numNodes: numNodes,topology: "gossip_3D", nodeList: list_of_neighbours,numbering: nil}})
+        %{name: i,numNodes: numNodes,topology: "3Dtorus", nodeList: list_of_neighbours,numbering: nil}})
     end
     state = GenServer.call(KV.Registry, {:getState})
+    failedNodeNamesList = Enum.map(1..noOfNodesToFail, fn i ->
+      GenServer.call(KV.FailureHelper,{:gossip_failure,state})
+    end)
     nodeList = Enum.map(state, fn {k,v} -> k end)
     if state != %{} do
+      random_pid = getARandomNodeExcludingFailedOnes(state,failedNodeNamesList)
       {name, random_pid} = Enum.random(state)
-      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), perfect_cube,nodeList] })
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), perfect_cube-noOfNodesToFail,nodeList] })
       GenServer.cast(random_pid, {:transrumor, "Infection!"})
       periodicallyGossip(state)
     end
@@ -82,7 +126,7 @@ defmodule Main do
 
   # ======================= Gossip Honeycomb/Random Honeycomb Start ================================#
 
-  def gossipHoneycombAndRandomHoneyComb(numNodes,topology) do
+  def gossipHoneycombAndRandomHoneyComb(numNodes,topology,noOfNodesToFail) do
     map_of_neighbours = AdjacencyHelper.getNodeList(topology,numNodes)
     nodeList = Enum.map(map_of_neighbours, fn {k, v} -> k end)
     for i <- 1..numNodes do
@@ -93,9 +137,12 @@ defmodule Main do
           numNodes: numNodes,topology: topology, nodeList: map_of_neighbours,numbering: i}})
     end
     state = GenServer.call(KV.Registry, {:getState})
+    failedNodeNamesList = Enum.map(1..noOfNodesToFail, fn i ->
+      GenServer.call(KV.FailureHelper,{:gossip_failure,state})
+    end)
     if state != %{} do
-      {name, random_pid} = Enum.random(state)
-      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), map_size(map_of_neighbours),nodeList] })
+      random_pid = getARandomNodeExcludingFailedOnes(state,failedNodeNamesList)
+      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), map_size(map_of_neighbours)-noOfNodesToFail,nodeList] })
       GenServer.cast(random_pid, {:transrumor, "Infection!"})
       periodicallyGossip(state)
     end
@@ -185,7 +232,7 @@ defmodule Main do
     if state != %{} do
 
       for i <- 1..numNodes do
-        new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1)) 
+        new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1))
         GenServer.cast(Enum.at(list_of_pids, i - 1), {:update_neighbours, new_list_of_pids})
       end
 
@@ -225,7 +272,7 @@ defmodule Main do
     if state != %{} do
 
       for i <- 1..numNodes do
-        #new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1)) 
+        #new_list_of_pids = List.delete(list_of_pids, Enum.at(list_of_pids, i - 1))
         GenServer.cast(state[i], {:update_neighbours, Enum.at(node_neighbour_pid_list, i - 1)})
       end
 
@@ -274,7 +321,7 @@ defmodule Main do
 
     if state != %{} do
 
-      
+
       for i <- 1..numNodes do
         GenServer.cast(state[Enum.at(nodeList, i-1)], {:update_neighbours, node_neighbour_pid_map[Enum.at(nodeList, i-1)]})
       end
@@ -306,7 +353,7 @@ defmodule Main do
     state = GenServer.call(KV.Registry, {:getState})
     nodeList = Enum.map(state, fn {k,v} -> k end)
 
-    node_neighbour_pid_map = 
+    node_neighbour_pid_map =
         Enum.map(list_of_neighbours, fn list_of_a_neighbour ->
 
           Enum.map( list_of_a_neighbour, fn n->
@@ -368,7 +415,7 @@ defmodule Main do
     )
 
     # initialize
-    
+
     # IO.inspect(nodeList)
     # IO.inspect(state)
     # IO.inspect(map_of_neighbours)

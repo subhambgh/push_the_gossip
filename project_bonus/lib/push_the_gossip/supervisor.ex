@@ -9,6 +9,7 @@ defmodule KV.Supervisor do
   def init(:ok) do
     children = [
       {KV.Registry, name: KV.Registry},
+      {KV.FailureHelper, name: KV.FailureHelper},
       {DynamicSupervisor, name: KV.BucketSupervisor, strategy: :one_for_one},
       {PushTheGossip.Convergence, name: PushTheGossip.Convergence}
     ]
