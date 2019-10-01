@@ -1,17 +1,28 @@
-defmodule Main do
+defmodule PushTheGossip.Main do
+
+  def main(args \\ []) do
+    IO.inspect(args)
+    {numNodes,""} = Integer.parse(Enum.at(args,0))
+    topology = Enum.at(args,1)
+    algorithm = Enum.at(args,2)
+    start(numNodes, topology,algorithm)
+  end
 
   def start(numNodes,topology,algorithm) do
+    
+    #IO.puts("#{numNodes} #{topology} #{algorithm}")
+
     case algorithm do
       "gossip" ->
-        Main.gossip(numNodes,topology)
+        gossip(numNodes,topology)
         "push-sum"->
           case topology do
-            "full" ->Main.push_sum_full(numNodes)
-            "line" ->Main.push_sum_line(numNodes)
-            "rand2D" ->Main.push_sum_random_2D(numNodes)
-            "3Dtorus" ->Main.push_sum_3D(numNodes)
-            "honeycomb" ->Main.push_sum_honeycomb(numNodes)
-            "randhoneycomb" ->Main.push_sum_random_honeycomb(numNodes)
+            "full" ->push_sum_full(numNodes)
+            "line" ->push_sum_line(numNodes)
+            "rand2D" ->push_sum_random_2D(numNodes)
+            "3Dtorus" ->push_sum_3D(numNodes)
+            "honeycomb" ->push_sum_honeycomb(numNodes)
+            "randhoneycomb" ->push_sum_random_honeycomb(numNodes)
           end
     end
   end
