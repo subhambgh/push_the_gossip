@@ -26,13 +26,13 @@ defmodule PushTheGossip.Convergence do
   end
 
   def handle_call({:i_heard_it_push}, _from, {time_start,  numNodes, count, list_of_nodes}) do
-    IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
+    #IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
     {:reply, {time_start,  numNodes, count}, {time_start,  numNodes, count, list_of_nodes}}
   end
 
   def handle_call({:i_heard_it_remove_me, name}, _from, {time_start,  numNodes, count, list_of_nodes}) do
     new_list_of_nodes = list_of_nodes -- [name]
-    #IO.puts("converzed #{inspect name}")
+    IO.puts("converzed #{inspect name} #{inspect length(new_list_of_nodes)}")
     #90 % convergence
     if length(new_list_of_nodes) <= numNodes/10 do
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")

@@ -21,6 +21,18 @@ defmodule KV.Registry do
     {:reply, value, state}
   end
 
+
+  def handle_call({:reverse_lookup, pid}, _from, state) do
+      {names, _, _} = state
+      value = names
+              |> Enum.find(fn {key, val} -> val == pid end)
+              |> elem(0)
+
+    {:reply, value, state}
+  end
+
+
+
   #implemented for full topologies only
   def handle_call({:updateMap,nameToDelete},_from, {names, refs, adj_list}) do
     #IO.inspect(names)
@@ -204,7 +216,7 @@ defmodule KV.Registry do
   # ===================== Push Sum Full Start ==============================#
 
   @impl true
-  def handle_cast({:create_push_full, name}, {names, refs, adj_list}) do
+  def handle_cast({:create_push_sum, name}, {names, refs, adj_list}) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
@@ -218,26 +230,47 @@ defmodule KV.Registry do
 
   # ===================== Push Sum Full End ==============================#
 
-  # ===================== Push Sum Line Start ==============================#
+
+
+  # ===================== Push Sum Full Start ==============================#
 
   @impl true
-  def handle_cast({:create_push_line, [name, numNodes]}, {names, refs, adj_list}) do
+  def handle_cast({:create_push_full, name}, {names, refs, adj_list}) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1, name]})
+      {:ok, pid} = GenServer.start_link(PushSum.Full, [name, 1])
+      ref = Process.monitor(pid)
+      refs = Map.put(refs, ref, name)
+      names = Map.put(names, name, pid)
+      {:noreply, {names, refs, adj_list}}
+    end
+  end
 
-      adj_list =
-        cond do
-          name == 1 ->
-            Map.put(adj_list, name, [name + 1])
+  # ===================== Push Sum Full End ==============================#
 
-          name == numNodes ->
-            Map.put(adj_list, name, [name - 1])
+  # ===================== Push Sum Line Start ==============================#
 
-          true ->
-            Map.put(adj_list, name, [name - 1, name + 1])
-        end
+  @impl true
+  def handle_cast({:create_push_line, [name]}, {names, refs, adj_list}) do
+    if Map.has_key?(names, name) do
+      {:noreply, {names, refs, adj_list}}
+    else
+      {:ok, pid} = GenServer.start_link(PushSum.Rest, [name, 1, name])
+
+      # adj_list =
+      #   cond do
+      #     name == 1 ->
+      #       Map.put(adj_list, name, [name + 1])
+
+      #     name == numNodes ->
+      #       Map.put(adj_list, name, [name - 1])
+
+      #     true ->
+      #       Map.put(adj_list, name, [name - 1, name + 1])
+      #   end
+
+      adj_list = []
 
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
@@ -254,20 +287,17 @@ defmodule KV.Registry do
 
   @impl true
   def handle_cast(
-        {:create_push_random_2D, [name, number_for_s, numNodes, neighbours]},
+        {:create_push_random_2D, [name, number_for_s]},
         {names, refs, adj_list}
       ) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
       {:ok, pid} =
-        DynamicSupervisor.start_child(
-          KV.BucketSupervisor,
-          {KV.PushSumLine, [number_for_s, 1, name]}
-        )
+      GenServer.start_link(PushSum.Rest, [number_for_s, 1, name])
 
-      adj_list = Map.put(adj_list, name, neighbours)
-
+      #adj_list = Map.put(adj_list, name, neighbours)
+      #adj_list = []
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
@@ -281,12 +311,12 @@ defmodule KV.Registry do
   # ======================= Push Sum 3D Start ================================#
 
   @impl true
-  def handle_cast({:create_push_3D, [name, neighbours]}, {names, refs, adj_list}) do
+  def handle_cast({:create_push_3D, [name]}, {names, refs, adj_list}) do
     if Map.has_key?(names, name) do
       {:noreply, {names, refs, adj_list}}
     else
       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [name, 1, name]})
-      adj_list = Map.put(adj_list, name, neighbours)
+      #adj_list = Map.put(adj_list, name, neighbours)
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
@@ -304,7 +334,7 @@ defmodule KV.Registry do
       {:noreply, {names, refs, adj_list}}
     else
       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, {KV.PushSumLine, [s, 1, name]})
-      adj_list = Map.put(adj_list, name, neighbours)
+      #adj_list = Map.put(adj_list, name, neighbours)
       ref = Process.monitor(pid)
       refs = Map.put(refs, ref, name)
       names = Map.put(names, name, pid)
@@ -329,6 +359,30 @@ defmodule KV.Registry do
 
     {:noreply, {names, refs, adj_list}}
   end
+
+  # ======== Functions for Line Neighbour Generation =================#
+
+  def make_a_line (numNodes) do
+    
+    Enum.map(1..numNodes, fn name -> 
+
+        cond do
+          name == 1 ->
+            [name + 1]
+
+          name == numNodes ->
+            [name - 1]
+
+          true ->
+            [name - 1, name + 1]
+        end
+
+
+      end)
+
+
+  end
+  # ======== Functions for Line Neighbour Generation =================#
 
   # ======== Functions for Random 2D Neighbour Generation =================#
 
