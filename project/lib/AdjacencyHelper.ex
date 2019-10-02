@@ -3,7 +3,8 @@ defmodule AdjacencyHelper do
     adj_list =
     case topology do
       "full" ->
-        Enum.map(1..numNodes, fn i -> i end)
+        adj_list = Enum.map(1..numNodes, fn i -> i end)
+        adj_list -- [name]
 
       "line" ->
         cond do
@@ -21,14 +22,13 @@ defmodule AdjacencyHelper do
       "3Dtorus" ->
         #nodeList is list_of_neighbours
         Enum.at(nodeList, name - 1)
-
-      "honeycomb"->
-        #nodeList is map_of_neighbours
-         nodeList[name]
-
-      "randhoneycomb"->
-         nodeList[name]
     end
+  end
+
+  def getAdjListForHoneycombs(name,nodeList,map_of_neighbours,i) do
+    map_of_neighbours[
+             [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)]
+           ]
   end
 
   def getNodeList(topology,numNodes) do

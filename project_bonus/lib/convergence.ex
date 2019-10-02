@@ -35,8 +35,14 @@ defmodule PushTheGossip.Convergence do
     new_list_of_nodes = list_of_nodes -- [name]
     #IO.puts("converzed #{inspect name} #{count}")
     #IO.puts("converzed #{inspect list_of_nodes}")
+    #IO.puts("not converzed #{inspect length(new_list_of_nodes)}")
+    #IO.puts("Yet Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
     #90 % convergence
-    if length(new_list_of_nodes) <= numNodes/10 do
+    # if length(new_list_of_nodes) <= 0 do
+    #   IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
+    #   System.halt(1)
+    # end
+    if count >=numNodes do
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
       System.halt(1)
     end

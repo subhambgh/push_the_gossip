@@ -1,17 +1,14 @@
 defmodule PushTheGossip.Main do
 
-  def main(args) do
-    IO.inspect(args)
+  def main(args \\ []) do
+    {numNodes,""} = Integer.parse(Enum.at(args,0))
+    topology = Enum.at(args,1)
+    algorithm = Enum.at(args,2)
+    {noOfNodesToFail,""} = Integer.parse(Enum.at(args,3))
+    start(numNodes, topology,algorithm,noOfNodesToFail)
   end
 
-  def start(args) do
-    argList = String.split(args," ")
-    IO.puts("#{argList} ")
-    numNodes = Integer.parse(Enum.at(argList,0))
-    topology = Kernel.inspect(Enum.at(argList,1))
-    algorithm = Kernel.inspect(Enum.at(argList,2))
-    noOfNodesToFail =Integer.parse(Enum.at(argList,3))
-    IO.puts("#{args} #{argList} #{numNodes} #{topology} #{algorithm} #{noOfNodesToFail}")
+  def start(numNodes,topology,algorithm,noOfNodesToFail) do
     case algorithm do
       "gossip" ->
         gossip(numNodes,topology,noOfNodesToFail)
@@ -28,15 +25,15 @@ defmodule PushTheGossip.Main do
   end
 
   def periodicallyGossip(state) do
-    Process.sleep(100)
-    randomNodeNotConverged = Enum.random(GenServer.call(PushTheGossip.Convergence,{:getState}))
-    if randomNodeNotConverged != [] || randomNodeNotConverged != nil do
-        GenServer.cast(Map.get(state,randomNodeNotConverged), {:transrumor, "Infection!"})
-        #IO.puts("randomly send #{inspect Map.get(state,randomNodeNotConverged)} => #{inspect randomNodeNotConverged} => #{inspect Process.alive?Map.get(state,randomNodeNotConverged)}")
-        periodicallyGossip(state)
-      else
-        nil
-    end
+    # Process.sleep(1000)
+    # randomNodeNotConverged = Enum.random(GenServer.call(PushTheGossip.Convergence,{:getState}))
+    # if randomNodeNotConverged != [] || randomNodeNotConverged != nil do
+    #     GenServer.cast(Map.get(state,randomNodeNotConverged), {:transrumor, "Infection!"})
+    #     #IO.puts("randomly send #{inspect Map.get(state,randomNodeNotConverged)} => #{inspect randomNodeNotConverged} => #{inspect Process.alive?Map.get(state,randomNodeNotConverged)}")
+    #     periodicallyGossip(state)
+    #   else
+    #     nil
+    # end
   end
 
   def periodicallyPush(state) do
@@ -55,7 +52,7 @@ defmodule PushTheGossip.Main do
   def getARandomNodeExcludingFailedOnes(state,failedNodeNamesList) do
     {randomName, randomPid} = Enum.random(state)
     #IO.puts("#{randomName} #{failedNodeNamesList}")
-    IO.inspect randomName
+    #IO.inspect randomName
     if Enum.member?(failedNodeNamesList,randomName) do
       getARandomNodeExcludingFailedOnes(state,failedNodeNamesList)
     else
@@ -202,7 +199,7 @@ defmodule PushTheGossip.Main do
     end
 
     state = GenServer.call(KV.Registry, {:getState})
-    IO.inspect(state)
+    #IO.inspect(state)
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes,nodeList] })
@@ -225,7 +222,7 @@ defmodule PushTheGossip.Main do
     nodeList = Enum.map(1..numNodes, fn n -> n end)
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
-    IO.inspect(state)
+    #IO.inspect(state)
 
     list_of_pids = Enum.map(state, fn {k,v} -> v end)
 
@@ -267,7 +264,7 @@ defmodule PushTheGossip.Main do
     #IO.inspect(state)
 
     #IO.inspect(node_neighbour_list)
-    IO.inspect(node_neighbour_pid_list)
+    #IO.inspect(node_neighbour_pid_list)
 
     if state != %{} do
 
@@ -304,7 +301,7 @@ defmodule PushTheGossip.Main do
     state = GenServer.call(KV.Registry, {:getState})
 
     # IO.inspect(map_of_neighbours)
-    IO.inspect(state)
+    #IO.inspect(state)
 
 
     node_neighbour_pid_map = Map.new(Enum.map(map_of_neighbours, fn {k,v} ->
@@ -317,7 +314,7 @@ defmodule PushTheGossip.Main do
       end)
     )
 
-    IO.inspect(node_neighbour_pid_map)
+    #IO.inspect(node_neighbour_pid_map)
 
     if state != %{} do
 
@@ -348,7 +345,7 @@ defmodule PushTheGossip.Main do
       )
     end
 
-    IO.inspect(list_of_neighbours)
+    #IO.inspect(list_of_neighbours)
     # initialize
     state = GenServer.call(KV.Registry, {:getState})
     nodeList = Enum.map(state, fn {k,v} -> k end)
@@ -364,18 +361,18 @@ defmodule PushTheGossip.Main do
 
         end)
 
-    IO.inspect(node_neighbour_pid_map)
+    #IO.inspect(node_neighbour_pid_map)
 
 
-    IO.inspect(state)
+    #IO.inspect(state)
     if state != %{} do
 
       for i <- 1..row_cnt_cube do
-        IO.puts("#{inspect state[i]} #{inspect Enum.at(node_neighbour_pid_map, i-1)} ")
+        #O.puts("#{inspect state[i]} #{inspect Enum.at(node_neighbour_pid_map, i-1)} ")
         GenServer.cast(state[i], {:update_neighbours, Enum.at(node_neighbour_pid_map, i-1)})
       end
 
-      IO.puts "hogaya"
+      #IO.puts "hogaya"
 
       {name, random_pid} = Enum.random(state)
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes, nodeList] })
@@ -465,7 +462,7 @@ defmodule PushTheGossip.Main do
 
       end)
     )
-    IO.inspect(map_of_neighbours)
+    #IO.inspect(map_of_neighbours)
     # IO.inspect(state)
     # IO.inspect(nodeList)
 

@@ -9,38 +9,49 @@ defmodule PushTheGossip.Convergence do
     time_start = 0
     count = 0
     numNodes = -1
-    list_of_nodes = []
-    {:ok, {time_start, numNodes, count, list_of_nodes}}
+    remaningNodes = []
+    {:ok, {time_start, numNodes, count, remaningNodes}}
   end
 
-  def handle_call({:getState},_from ,{time_start,  numNodes, count, list_of_nodes}) do
-    #IO.inspect(list_of_nodes)
-    {:reply,list_of_nodes ,{time_start,  numNodes, count, list_of_nodes}}
+  def handle_call({:getState},_from ,{time_start,  numNodes, count, remaningNodes}) do
+    #IO.inspect(remaningNodes)
+    {:reply,remaningNodes ,{time_start,  numNodes, count, remaningNodes}}
   end
 
-  def handle_cast({:time_start_with_list, [value_time, value_numNodes, value_list] }, {time_start,  numNodes, count, list_of_nodes}) do
-    time_start = value_time
-    numNodes = value_numNodes
-    list_of_nodes = value_list
-    {:noreply, {time_start,numNodes, count, list_of_nodes}}
+  ############################### for gossip that doesn't take list of nodes #############################################
+  def handle_cast({:time_start_with_list, [startTime, totalNodes] }, {time_start,  numNodes, count, remaningNodes}) do
+    {:noreply, {startTime,numNodes, 0, remaningNodes}}
   end
 
-  def handle_call({:i_heard_it_push}, _from, {time_start,  numNodes, count, list_of_nodes}) do
-    #IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
-    {:reply, {time_start,  numNodes, count}, {time_start,  numNodes, count, list_of_nodes}}
-  end
-
-  def handle_call({:i_heard_it_remove_me, name}, _from, {time_start,  numNodes, count, list_of_nodes}) do
+  def handle_call({:i_heard_it_remove_me, name}, _from, {time_start,  numNodes, count, remaningNodes}) do
     count = count+1
-    new_list_of_nodes = list_of_nodes -- [name]
-    #IO.puts("converzed #{inspect name} #{count}")
-    #IO.puts("converzed #{inspect list_of_nodes}")
-    #90 % convergence
-    if length(new_list_of_nodes) <= numNodes/10 do
+    if count >= numNodes-1 do
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
       System.halt(1)
     end
-    {:reply, new_list_of_nodes, {time_start,  numNodes, count, new_list_of_nodes}}
+    {:reply, 0, {time_start,  numNodes, count, remaningNodes}}
+  end
+
+  ############################### for push sum that take list of nodes #############################################
+  def handle_cast({:time_start_with_list, [startTime, totalNodes, startingWithNodes] }, {time_start,  numNodes, count, remaningNodes}) do
+    {:noreply, {startTime,totalNodes, 0, startingWithNodes}}
+  end
+
+  def handle_call({:i_heard_it_remove_me, name}, _from, {time_start,  numNodes, count, remaningNodes}) do
+    remaningNodes = remaningNodes -- [name]
+    if length(remaningNodes)<=1 do
+      IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
+      System.halt(1)
+    end
+    {:reply, 0, {time_start,  numNodes, count, remaningNodes}}
+  end
+
+  def handle_call({:helpConvergencePushSum, name}, _from, {time_start,  numNodes, count, remaningNodes}) do
+    if remaningNodes != [] do
+      randomNeighbourPid = PushSum.whereis(Enum.random(remaningNodes))
+      GenServer.cast(randomNeighbourPid, {:receive, {0, 0}})
+    end
+    {:reply, 0, {time_start,  numNodes, count, remaningNodes}}
   end
 
 end

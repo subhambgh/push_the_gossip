@@ -31,7 +31,7 @@ defmodule KV.FailureHelper do
 
   @impl true
   def terminate(_, _state) do
-    IO.inspect("Terminating KV.FailureHelper")
+    #IO.inspect("Terminating KV.FailureHelper")
   end
 
 end
