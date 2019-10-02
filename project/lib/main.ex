@@ -25,8 +25,9 @@ defmodule PushTheGossip.Main do
   #topology are gossip_full, gossip_line
   def gossip(numNodes,topology) do
     cond do
-      Enum.member?(["full","line","rand2D"],topology) ->
+      Enum.member?(["full","line"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
+        #IO.inspect nodeList
         for i <- 1..numNodes do
           {ok,pid} = Gossip.start_link(
             %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: topology,nodeList: nodeList})
@@ -35,6 +36,8 @@ defmodule PushTheGossip.Main do
         GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
         GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
         infinite()
+      topology == "rand2D" ->
+        gossipRand2D(numNodes)
       topology == "3Dtorus" ->
         gossip3D(numNodes)
       Enum.member?(["honeycomb","randhoneycomb"],topology) ->
@@ -43,11 +46,12 @@ defmodule PushTheGossip.Main do
   end
 
   # ======================= Gossip End ================================#
+
   # ===================== Push Sum Start ==============================#
 
   def pushSum(numNodes,topology) do
     cond do
-      Enum.member?(["full","line","rand2D"],topology) ->
+      Enum.member?(["full","line"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
       for i <- 1..numNodes do
         {ok,pid} = PushSum.start_link(
@@ -58,6 +62,8 @@ defmodule PushTheGossip.Main do
       GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
       GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
       infinite()
+    topology == "rand2D" ->
+      pushSumRand2D(numNodes)
     topology == "3Dtorus" ->
       pushSum3D(numNodes)
     Enum.member?(["honeycomb","randhoneycomb"],topology) ->
@@ -67,9 +73,22 @@ defmodule PushTheGossip.Main do
 
   # ===================== Push Sum End ==============================#
 
+  #################### Random 2D, 3D and honeycomb implementations #####################
+  # ======================= Gossip Random 2D Start ================================#
+  def gossipRand2D(numNodes) do
+    nodeList = AdjacencyHelper.getNodeList("rand2D",numNodes)
+    map_of_neighbours = AdjacencyHelper.generate_neighbours_for_random2D(nodeList)
+    for i <- 1..numNodes do
+      {ok,pid} = Gossip.start_link(
+        %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: "rand2D",nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
+      ref = Process.monitor(pid)
+    end
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
+    GenServer.cast(Gossip.whereis(Enum.at(nodeList,round(numNodes/2)-1)), {:receive, "Infection!"})
+    infinite()
+  end
 
-
-  #################### 3D and honeycomb implementations #####################
+  # ======================= Gossip Random 2D End ================================#
   # ======================= Gossip 3D Start ================================#
 
   def gossip3D(numNodes) do
@@ -110,6 +129,21 @@ defmodule PushTheGossip.Main do
   end
 
   # ======================= Gossip Honeycomb End ================================#
+  # ======================= Push Sum Random 2D Start ================================#
+  def pushSumRand2D(numNodes) do
+    nodeList = AdjacencyHelper.getNodeList("rand2D",numNodes)
+    map_of_neighbours = AdjacencyHelper.generate_neighbours_for_random2D(nodeList)
+    for i <- 1..numNodes do
+      {ok,pid} = PushSum.start_link(
+        %{name: Enum.at(nodeList,i-1),s: i,w: 1,numNodes: numNodes,topology: "rand2D",nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
+      ref = Process.monitor(pid)
+    end
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
+    GenServer.cast(PushSum.whereis(Enum.at(nodeList,round(numNodes/2)-1)), {:receive, {0, 0}})
+    infinite()
+  end
+
+  # ======================= Push Sum Random 2D End ================================#
   # ======================= Push Sum 3D Start ================================#
 
   def pushSum3D(numNodes) do

@@ -27,9 +27,9 @@ defmodule Gossip do
       if !Map.has_key?(process, :mapOfNeighbours) do
         AdjacencyHelper.getAdjList(process.topology,process.numNodes,process.name,process.nodeList)
       else
-        AdjacencyHelper.getAdjListForHoneycombs(process.name,process.nodeList,process.mapOfNeighbours,process.numbering)
+        AdjacencyHelper.getAdjListForRand2DAndHoneycombs(process.topology,process.name,process.nodeList,process.mapOfNeighbours,process.numbering)
       end
-      #IO.inspect adj_list
+      #IO.puts "#{inspect process.name} => #{inspect adj_list}"
     {:ok, {count, process.name,adj_list}}
   end
 
@@ -56,7 +56,7 @@ defmodule Gossip do
   # this is the receive
   @impl true
   def handle_cast({:receive, rumor}, {count,name,adj_list}) do
-    #IO.puts("received by #{inspect name}")
+    IO.puts("received by #{inspect name}")
     if count == 0 do
       spawn_link(__MODULE__,:gossip,[name,adj_list])
       GenServer.call(PushTheGossip.Convergence, {:i_heard_it,name})

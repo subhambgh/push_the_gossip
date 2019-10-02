@@ -20,7 +20,7 @@ defmodule PushTheGossip.Convergence do
 
   ###############################  that doesn't take list of nodes #############################################
   def handle_cast({:time_start, [startTime, totalNodes] }, {time_start,  numNodes, count, remaningNodes}) do
-    {:noreply, {startTime,numNodes, 0, remaningNodes}}
+    {:noreply, {startTime,totalNodes, 0, []}}
   end
 
   def handle_call({:i_heard_it, name}, _from, {time_start,  numNodes, count, remaningNodes}) do

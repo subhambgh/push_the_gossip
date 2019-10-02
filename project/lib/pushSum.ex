@@ -24,7 +24,7 @@
       if !Map.has_key?(process, :mapOfNeighbours) do
         AdjacencyHelper.getAdjList(process.topology,process.numNodes,process.name,process.nodeList)
       else
-        AdjacencyHelper.getAdjListForHoneycombs(process.name,process.nodeList,process.mapOfNeighbours,process.numbering)
+        AdjacencyHelper.getAdjListForRand2DAndHoneycombs(process.topology,process.name,process.nodeList,process.mapOfNeighbours,process.numbering)
       end
     count = 0
     {:ok, {process.s, process.w, count, process.name, adj_list}}
@@ -72,7 +72,7 @@
     else
         GenServer.cast(self(), {:send, {s, w}})
         #################### starting periodic callback here #################
-        Process.send_after(self(), :tick, @wait_time
+        Process.send_after(self(), :tick, @wait_time)
         ######################################################################
       {:noreply, {s, w, count, my_name, adj_list}}
     end
