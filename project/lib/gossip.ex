@@ -59,7 +59,7 @@ defmodule Gossip do
     #IO.puts("received by #{inspect name}")
     if count == 0 do
       spawn_link(__MODULE__,:gossip,[name,adj_list])
-      GenServer.call(PushTheGossip.Convergence, {:i_heard_it_remove_me,name})
+      GenServer.call(PushTheGossip.Convergence, {:i_heard_it,name})
       {:noreply, {count + 1,name,adj_list}}
     else
       if count < 10 do

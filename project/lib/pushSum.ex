@@ -63,7 +63,7 @@
     count = if change > :math.pow(10, -10), do: 0, else: count + 1
     #IO.puts("#{inspect my_name} #{change} #{count}")
     if count >= 3 do
-      GenServer.call(PushTheGossip.Convergence,{:i_heard_it_remove_me, my_name })
+      GenServer.call(PushTheGossip.Convergence,{:i_heard_it, my_name })
       # if it has steady change i.e., when count =3
       # send rumor to someone and kill urself
       # implement it like, start any actor that hasn't received message for like 100 ms

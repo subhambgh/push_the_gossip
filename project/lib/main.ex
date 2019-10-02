@@ -32,7 +32,7 @@ defmodule PushTheGossip.Main do
             %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: topology,nodeList: nodeList})
           ref = Process.monitor(pid)
         end
-        GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes]})
+        GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
         GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
         infinite()
       topology == "3Dtorus" ->
@@ -55,7 +55,7 @@ defmodule PushTheGossip.Main do
         ref = Process.monitor(pid)
       end
       # initialize
-      GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes] })
+      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
       GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
       infinite()
     topology == "3Dtorus" ->
@@ -85,7 +85,7 @@ defmodule PushTheGossip.Main do
         %{name: i,numNodes: numNodes,topology: "3Dtorus", nodeList: list_of_neighbours})
       ref = Process.monitor(pid)
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), perfect_cube] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube] })
     GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
     infinite()
   end
@@ -104,7 +104,7 @@ defmodule PushTheGossip.Main do
         numNodes: numNodes,topology: topology, nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
       ref = Process.monitor(pid)
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(Gossip.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, "Infection!"})
     infinite()
   end
@@ -126,7 +126,7 @@ defmodule PushTheGossip.Main do
       ref = Process.monitor(pid)
     end
     # initialize
-    GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
     infinite()
   end
@@ -146,7 +146,7 @@ defmodule PushTheGossip.Main do
         numNodes: numNodes,topology: topology, nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
       ref = Process.monitor(pid)
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(PushSum.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, {0, 0}})
     infinite()
   end
