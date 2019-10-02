@@ -4,26 +4,49 @@ defmodule PushTheGossip.Main do
     {numNodes,""} = Integer.parse(Enum.at(args,0))
     topology = Enum.at(args,1)
     algorithm = Enum.at(args,2)
-    start(numNodes, topology,algorithm)
+    failNodes=
+      if Enum.at(args,3)== nil do
+        0
+      else
+        Enum.at(args,3)
+      end
+    maxWaitTime =
+      if Enum.at(args,4)== nil do
+        9999999
+      else
+        Enum.at(args,4)
+      end
+    start(numNodes, topology,algorithm,failNodes,maxWaitTime)
   end
 
-  def start(numNodes,topology,algorithm) do
+  def start(numNodes,topology,algorithm,failNodes,maxWaitTime) do
 
     case algorithm do
       "gossip" ->
-        gossip(numNodes,topology)
+        gossip(numNodes,topology,failNodes,maxWaitTime)
       "push-sum"->
-        pushSum(numNodes,topology)
+        pushSum(numNodes,topology,failNodes,maxWaitTime)
     end
   end
 
-  def infinite() do
-    infinite()
+  def infinite(maxWaitTime,failNodes) do
+    timer(maxWaitTime,failNodes)
+  end
+
+  def timer(maxWaitTime,failNodes) do
+    # {time_start,numNodes,nodesConverged,_} = GenServer.call(PushTheGossip.Convergence,{:getState})
+    # #IO.puts "#{inspect (System.system_time(:millisecond) - time_start)}  #{maxWaitTime}  #{(System.system_time(:millisecond) - time_start) <= maxWaitTime}"
+    # if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
+    #   IO.puts("Remaning Nodes #{numNodes-nodesConverged} & Convergence % =  #{(nodesConverged/numNodes)*100}")
+    #   System.halt(1)
+    # else
+       timer(maxWaitTime,failNodes)
+    # end
   end
 
   # ======================= Gossip Start ================================#
   #topology are gossip_full, gossip_line
-  def gossip(numNodes,topology) do
+  def gossip(numNodes,topology,failNodes,maxWaitTime) do
     cond do
       Enum.member?(["full","line"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
@@ -35,13 +58,16 @@ defmodule PushTheGossip.Main do
         end
         GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
         GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
-        infinite()
+        infinite(maxWaitTime,failNodes)
       topology == "rand2D" ->
         gossipRand2D(numNodes)
+        infinite(maxWaitTime,failNodes)
       topology == "3Dtorus" ->
         gossip3D(numNodes)
+        infinite(maxWaitTime,failNodes)
       Enum.member?(["honeycomb","randhoneycomb"],topology) ->
         gossipHoneycombAndRandomHoneyComb(numNodes,topology)
+        infinite(maxWaitTime,failNodes)
     end
   end
 
@@ -49,7 +75,7 @@ defmodule PushTheGossip.Main do
 
   # ===================== Push Sum Start ==============================#
 
-  def pushSum(numNodes,topology) do
+  def pushSum(numNodes,topology,failNodes,maxWaitTime) do
     cond do
       Enum.member?(["full","line"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
@@ -61,13 +87,16 @@ defmodule PushTheGossip.Main do
       # initialize
       GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
       GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
-      infinite()
+      infinite(maxWaitTime,failNodes)
     topology == "rand2D" ->
       pushSumRand2D(numNodes)
+      infinite(maxWaitTime,failNodes)
     topology == "3Dtorus" ->
       pushSum3D(numNodes)
+      infinite(maxWaitTime,failNodes)
     Enum.member?(["honeycomb","randhoneycomb"],topology) ->
       pushSumHoneycombAndRandomHoneyComb(numNodes,topology)
+      infinite(maxWaitTime,failNodes)
     end
   end
 
@@ -85,7 +114,6 @@ defmodule PushTheGossip.Main do
     end
     GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
     GenServer.cast(Gossip.whereis(Enum.at(nodeList,round(numNodes/2)-1)), {:receive, "Infection!"})
-    infinite()
   end
 
   # ======================= Gossip Random 2D End ================================#
@@ -96,7 +124,7 @@ defmodule PushTheGossip.Main do
     rowcnt_square = rowcnt * rowcnt
     perfect_cube = round(:math.pow(rowcnt,3))
     if numNodes != perfect_cube do
-     IO.puts("perfect_cube #{perfect_cube}!")
+     #IO.puts("perfect_cube #{perfect_cube}!")
     end
     list_of_neighbours = AdjacencyHelper.getNodeListFor3D(numNodes, rowcnt, rowcnt_square)
     for i <- 1..perfect_cube do
@@ -106,7 +134,6 @@ defmodule PushTheGossip.Main do
     end
     GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube] })
     GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
-    infinite()
   end
 
   # ======================= Gossip 3D End ================================#
@@ -125,7 +152,6 @@ defmodule PushTheGossip.Main do
     end
     GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(Gossip.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, "Infection!"})
-    infinite()
   end
 
   # ======================= Gossip Honeycomb End ================================#
@@ -140,7 +166,6 @@ defmodule PushTheGossip.Main do
     end
     GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
     GenServer.cast(PushSum.whereis(Enum.at(nodeList,round(numNodes/2)-1)), {:receive, {0, 0}})
-    infinite()
   end
 
   # ======================= Push Sum Random 2D End ================================#
@@ -162,7 +187,6 @@ defmodule PushTheGossip.Main do
     # initialize
     GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
-    infinite()
   end
 
   # ======================= Push Sum 3D End ================================#
@@ -182,7 +206,6 @@ defmodule PushTheGossip.Main do
     end
     GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(PushSum.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, {0, 0}})
-    infinite()
   end
 
   # ======================= Push Sum Honeycomb End ================================#

@@ -56,7 +56,7 @@ defmodule Gossip do
   # this is the receive
   @impl true
   def handle_cast({:receive, rumor}, {count,name,adj_list}) do
-    IO.puts("received by #{inspect name}")
+    #IO.puts("received by #{inspect name}")
     if count == 0 do
       spawn_link(__MODULE__,:gossip,[name,adj_list])
       GenServer.call(PushTheGossip.Convergence, {:i_heard_it,name})

@@ -15,7 +15,7 @@ defmodule PushTheGossip.Convergence do
 
   def handle_call({:getState},_from ,{time_start,  numNodes, count, remaningNodes}) do
     #IO.inspect(remaningNodes)
-    {:reply,remaningNodes ,{time_start,  numNodes, count, remaningNodes}}
+    {:reply,{time_start,  numNodes, count, remaningNodes} ,{time_start,  numNodes, count, remaningNodes}}
   end
 
   ###############################  that doesn't take list of nodes #############################################
