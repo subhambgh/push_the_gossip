@@ -1,6 +1,6 @@
-{application,push_the_gossips,
+{application,pushthegossip,
              [{applications,[kernel,stdlib,elixir,logger]},
-              {description,"push_the_gossips"},
+              {description,"pushthegossip"},
               {modules,['Elixir.AdjacencyHelper','Elixir.Gossip','Elixir.KV',
                         'Elixir.KV.Registry','Elixir.KV.Supervisor',
                         'Elixir.PushSum.Full','Elixir.PushSum.Rest',

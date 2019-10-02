@@ -337,8 +337,8 @@ defmodule KV.Registry do
   # ======== Functions for Line Neighbour Generation =================#
 
   def make_a_line (numNodes) do
-    
-    Enum.map(1..numNodes, fn name -> 
+
+    Enum.map(1..numNodes, fn name ->
 
         cond do
           name == 1 ->

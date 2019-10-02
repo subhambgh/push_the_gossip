@@ -3,7 +3,7 @@ defmodule PushTheGossips.MixProject do
 
   def project do
     [
-      app: :push_the_gossips,
+      app: :pushthegossip,
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,

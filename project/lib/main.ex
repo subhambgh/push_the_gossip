@@ -9,7 +9,7 @@ defmodule PushTheGossip.Main do
   end
 
   def start(numNodes,topology,algorithm) do
-    
+
     #IO.puts("#{numNodes} #{topology} #{algorithm}")
 
     case algorithm do
@@ -62,7 +62,7 @@ defmodule PushTheGossip.Main do
         _=  GenServer.call(KV.Registry, {:create_gossip,
           %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: topology, nodeList: nodeList,numbering: i}})
         end
-        state = GenServer.call(KV.Registry, {:getState})
+        state = GenServer.call(KV.Registry, {:getState},:infinity)
         if state != %{} do
           {name, random_pid} = Enum.random(state)
           GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), numNodes,nodeList] })
@@ -95,7 +95,7 @@ defmodule PushTheGossip.Main do
         KV.Registry,{:create_gossip,
         %{name: i,numNodes: numNodes,topology: "3Dtorus", nodeList: list_of_neighbours,numbering: nil}})
     end
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     nodeList = Enum.map(state, fn {k,v} -> k end)
     if state != %{} do
       {name, random_pid} = Enum.random(state)
@@ -119,7 +119,7 @@ defmodule PushTheGossip.Main do
           %{name: [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)],
           numNodes: numNodes,topology: topology, nodeList: map_of_neighbours,numbering: i}})
     end
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), map_size(map_of_neighbours),nodeList] })
@@ -149,7 +149,7 @@ defmodule PushTheGossip.Main do
          ]}
       )
     end
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     if state != %{} do
       {name, random_pid} = Enum.random(state)
       GenServer.cast(PushTheGossip.Convergence, {:time_start_with_list, [System.system_time(:millisecond), map_size(map_of_neighbours),nodeList] })
@@ -168,7 +168,7 @@ defmodule PushTheGossip.Main do
     end
     nodeList = Enum.map(1..numNodes, fn n -> n end)
     # initialize
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     IO.inspect(state)
 
     list_of_pids = Enum.map(state, fn {k,v} -> v end)
@@ -197,7 +197,7 @@ defmodule PushTheGossip.Main do
     end
     nodeList = Enum.map(1..numNodes, fn n -> n end)
     # initialize
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     #list_of_pids = Enum.map(state, fn {k,v} -> v end)
 
     node_neighbour_list = KV.Registry.make_a_line(numNodes)
@@ -245,7 +245,7 @@ defmodule PushTheGossip.Main do
       )
     end
     # initialize
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
 
     # IO.inspect(map_of_neighbours)
     IO.inspect(state)
@@ -294,7 +294,7 @@ defmodule PushTheGossip.Main do
 
     IO.inspect(list_of_neighbours)
     # initialize
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     nodeList = Enum.map(state, fn {k,v} -> k end)
 
     node_neighbour_pid_map =
@@ -347,7 +347,7 @@ defmodule PushTheGossip.Main do
     end
 
 
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     node_neighbour_pid_map = Map.new(Enum.map(map_of_neighbours, fn {k,v} ->
         {k, Enum.map(v, fn node ->
 
@@ -399,7 +399,7 @@ defmodule PushTheGossip.Main do
       )
     end
     # initialize
-    state = GenServer.call(KV.Registry, {:getState})
+    state = GenServer.call(KV.Registry, {:getState},:infinity)
     node_neighbour_pid_map = Map.new(Enum.map(map_of_neighbours, fn {k,v} ->
         {k, Enum.map(v, fn node ->
 
