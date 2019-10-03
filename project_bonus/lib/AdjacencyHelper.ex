@@ -3,8 +3,8 @@ defmodule AdjacencyHelper do
     adj_list =
     case topology do
       "full" ->
-        Enum.map(1..numNodes, fn i -> i end)
-
+        adj_list = Enum.map(1..numNodes, fn i -> i end)
+        adj_list -- [name]
       "line" ->
         cond do
           name == 1 ->
@@ -14,20 +14,24 @@ defmodule AdjacencyHelper do
           true ->
             [name - 1, name + 1]
         end
-
-      "rand2D" ->
-        generate_neighbours_for_random2D(name,nodeList)
-
       "3Dtorus" ->
         #nodeList is list_of_neighbours
         Enum.at(nodeList, name - 1)
+    end
+  end
 
-      "honeycomb"->
-        #nodeList is map_of_neighbours
-         nodeList[name]
-
-      "randhoneycomb"->
-         nodeList[name]
+  def getAdjListForRand2DAndHoneycombs(topology,name,nodeList,map_of_neighbours,i) do
+    case topology do
+      "rand2D" ->
+        map_of_neighbours[name]
+      "honeycomb" ->
+        map_of_neighbours[
+                 [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)]
+               ]
+      "randhoneycomb" ->
+        map_of_neighbours[
+                 [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)]
+               ]
     end
   end
 
@@ -66,7 +70,8 @@ defmodule AdjacencyHelper do
     if length(node_list) == numNodes do
       node_list
     else
-      new_node_list = Enum.uniq([ [:rand.uniform(10000) / 10000, :rand.uniform(10000) / 10000] | node_list])
+      #new_node_list = Enum.uniq([ [:rand.uniform(10) / 10, :rand.uniform(10) / 10] | node_list])
+      new_node_list = [ [:rand.uniform(), :rand.uniform()] | node_list]
       generate_random_2D(numNodes, new_node_list)
     end
   end
@@ -75,15 +80,13 @@ defmodule AdjacencyHelper do
     :math.sqrt( :math.pow((Enum.at(x,0)-Enum.at(y,0)), 2) + :math.pow((Enum.at(x,1)-Enum.at(y,1)), 2))
   end
 
-  def generate_neighbours_for_random2D(name,nodeCoordinateList) do
+  def generate_neighbours_for_random2D(nodeCoordinateList) do
     map =
       nodeCoordinateList
     |> Enum.map(fn pos ->
-      {pos, Enum.filter(List.delete(nodeCoordinateList, pos), &(distance(pos, &1) < 0.1))}
+      {pos, Enum.filter(List.delete(nodeCoordinateList, pos), &(distance(pos, &1) <= 0.1))}
     end)
     |> Map.new()
-
-    map[name]
   end
 
   # ======== Functions for Random 2D Neighbour Generation End =================#

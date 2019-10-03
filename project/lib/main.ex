@@ -1,26 +1,28 @@
 defmodule PushTheGossip.Main do
 
   def main(args \\ []) do
-    {numNodes,""} = Integer.parse(Enum.at(args,0))
+    {numNodes,_} = Integer.parse(Enum.at(args,0))
     topology = Enum.at(args,1)
     algorithm = Enum.at(args,2)
-    failNodes=
+    {failNodes,_}=
       if Enum.at(args,3)== nil do
-        0
+        {0,_}
       else
-        Enum.at(args,3)
+        Integer.parse(Enum.at(args,3))
       end
-    maxWaitTime =
+    {maxWaitTime,_}=
       if Enum.at(args,4)== nil do
-        9999999
+        {9999999,_}
       else
-        Enum.at(args,4)
+        Integer.parse(Enum.at(args,4))
       end
     start(numNodes, topology,algorithm,failNodes,maxWaitTime)
   end
 
   def start(numNodes,topology,algorithm,failNodes,maxWaitTime) do
-
+    #convergence_counter
+    convergence_counter = :ets.new(:convergence_counter, [:set, :public, :named_table])
+    :ets.insert(convergence_counter, {"count",0})
     case algorithm do
       "gossip" ->
         gossip(numNodes,topology,failNodes,maxWaitTime)
@@ -29,19 +31,21 @@ defmodule PushTheGossip.Main do
     end
   end
 
-  def infinite(maxWaitTime,failNodes) do
-    timer(maxWaitTime,failNodes)
+  def infinite(numNodes,maxWaitTime,failNodes) do
+    timer(numNodes,maxWaitTime,failNodes)
   end
 
-  def timer(maxWaitTime,failNodes) do
-    # {time_start,numNodes,nodesConverged,_} = GenServer.call(PushTheGossip.Convergence,{:getState})
-    # #IO.puts "#{inspect (System.system_time(:millisecond) - time_start)}  #{maxWaitTime}  #{(System.system_time(:millisecond) - time_start) <= maxWaitTime}"
-    # if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
-    #   IO.puts("Remaning Nodes #{numNodes-nodesConverged} & Convergence % =  #{(nodesConverged/numNodes)*100}")
-    #   System.halt(1)
-    # else
-       timer(maxWaitTime,failNodes)
-    # end
+  def timer(numNodes,maxWaitTime,failNodes) do
+    # {time_start,numNodes,nodesConverged,_} = GenServer.call(PushTheGossip.Convergence,{:getState},:infinity)
+    {_,time_start} = Enum.at(:ets.lookup(:convergence_time, "start"),0)
+    nodesConverged = Enum.at(:ets.lookup(:convergence_counter, "count"),0)
+    #IO.puts "#{ (System.system_time(:millisecond) - time_start)}  #{maxWaitTime}  #{(System.system_time(:millisecond) - time_start) >= maxWaitTime}"
+     if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
+       IO.puts("Remaning Nodes #{numNodes-nodesConverged} & Convergence % =  #{(nodesConverged/numNodes)*100}")
+       System.halt(1)
+     else
+       timer(numNodes,maxWaitTime,failNodes)
+     end
   end
 
   # ======================= Gossip Start ================================#
@@ -53,21 +57,23 @@ defmodule PushTheGossip.Main do
         #IO.inspect nodeList
         for i <- 1..numNodes do
           {ok,pid} = Gossip.start_link(
-            %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: topology,nodeList: nodeList})
+            %{name: i,numNodes: numNodes,topology: topology,nodeList: nodeList})
           ref = Process.monitor(pid)
         end
-        GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
+        #convergence_time
+        convergence_time = :ets.new(:convergence_time, [:set, :public, :named_table])
+        :ets.insert(convergence_time, {"start",System.system_time(:millisecond)})
         GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
-        infinite(maxWaitTime,failNodes)
+        infinite(numNodes,maxWaitTime,failNodes)
       topology == "rand2D" ->
         gossipRand2D(numNodes)
-        infinite(maxWaitTime,failNodes)
+        infinite(numNodes,maxWaitTime,failNodes)
       topology == "3Dtorus" ->
         gossip3D(numNodes)
-        infinite(maxWaitTime,failNodes)
+        infinite(numNodes,maxWaitTime,failNodes)
       Enum.member?(["honeycomb","randhoneycomb"],topology) ->
         gossipHoneycombAndRandomHoneyComb(numNodes,topology)
-        infinite(maxWaitTime,failNodes)
+        infinite(numNodes,maxWaitTime,failNodes)
     end
   end
 
@@ -81,22 +87,24 @@ defmodule PushTheGossip.Main do
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
       for i <- 1..numNodes do
         {ok,pid} = PushSum.start_link(
-          %{name: Enum.at(nodeList,i-1),s: i,w: 1,numNodes: numNodes,topology: topology,nodeList: nodeList})
+          %{name: i,s: i,w: 1,numNodes: numNodes,topology: topology,nodeList: nodeList})
         ref = Process.monitor(pid)
       end
       # initialize
-      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
+      #convergence_time
+      convergence_time = :ets.new(:convergence_time, [:set, :public, :named_table])
+      :ets.insert(convergence_time, {"start",System.system_time(:millisecond)})
       GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
-      infinite(maxWaitTime,failNodes)
+      infinite(numNodes,maxWaitTime,failNodes)
     topology == "rand2D" ->
       pushSumRand2D(numNodes)
-      infinite(maxWaitTime,failNodes)
+      infinite(numNodes,maxWaitTime,failNodes)
     topology == "3Dtorus" ->
       pushSum3D(numNodes)
-      infinite(maxWaitTime,failNodes)
+      infinite(numNodes,maxWaitTime,failNodes)
     Enum.member?(["honeycomb","randhoneycomb"],topology) ->
       pushSumHoneycombAndRandomHoneyComb(numNodes,topology)
-      infinite(maxWaitTime,failNodes)
+      infinite(numNodes,maxWaitTime,failNodes)
     end
   end
 
@@ -132,7 +140,9 @@ defmodule PushTheGossip.Main do
         %{name: i,numNodes: numNodes,topology: "3Dtorus", nodeList: list_of_neighbours})
       ref = Process.monitor(pid)
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube] })
+    #convergence_time
+    convergence_time = :ets.new(:convergence_time, [:set, :public, :named_table])
+    :ets.insert(convergence_time, {"start",System.system_time(:millisecond)})
     GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
   end
 
@@ -150,7 +160,9 @@ defmodule PushTheGossip.Main do
         numNodes: numNodes,topology: topology, nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
       ref = Process.monitor(pid)
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
+    #convergence_time
+    convergence_time = :ets.new(:convergence_time, [:set, :public, :named_table])
+    :ets.insert(convergence_time, {"start",System.system_time(:millisecond)})
     GenServer.cast(Gossip.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, "Infection!"})
   end
 
@@ -164,7 +176,9 @@ defmodule PushTheGossip.Main do
         %{name: Enum.at(nodeList,i-1),s: i,w: 1,numNodes: numNodes,topology: "rand2D",nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
       ref = Process.monitor(pid)
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
+    #convergence_time
+    convergence_time = :ets.new(:convergence_time, [:set, :public, :named_table])
+    :ets.insert(convergence_time, {"start",System.system_time(:millisecond)})
     GenServer.cast(PushSum.whereis(Enum.at(nodeList,round(numNodes/2)-1)), {:receive, {0, 0}})
   end
 
@@ -176,7 +190,7 @@ defmodule PushTheGossip.Main do
     rowcnt_square = rowcnt * rowcnt
     perfect_cube = round(:math.pow(rowcnt,3))
     if numNodes != perfect_cube do
-     IO.puts("perfect_cube #{perfect_cube}!")
+     #IO.puts("perfect_cube #{perfect_cube}!")
     end
     list_of_neighbours = AdjacencyHelper.getNodeListFor3D(numNodes, rowcnt, rowcnt_square)
     for i <- 1..perfect_cube do
@@ -185,7 +199,9 @@ defmodule PushTheGossip.Main do
       ref = Process.monitor(pid)
     end
     # initialize
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
+    #convergence_time
+    convergence_time = :ets.new(:convergence_time, [:set, :public, :named_table])
+    :ets.insert(convergence_time, {"start",System.system_time(:millisecond)})
     GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
   end
 
@@ -204,7 +220,9 @@ defmodule PushTheGossip.Main do
         numNodes: numNodes,topology: topology, nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
       ref = Process.monitor(pid)
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
+    #convergence_time
+    convergence_time = :ets.new(:convergence_time, [:set, :public, :named_table])
+    :ets.insert(convergence_time, {"start",System.system_time(:millisecond)})
     GenServer.cast(PushSum.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, {0, 0}})
   end
 

@@ -3,8 +3,9 @@ defmodule AdjacencyHelper do
     adj_list =
     case topology do
       "full" ->
-        adj_list = Enum.map(1..numNodes, fn i -> i end)
-        adj_list -- [name]
+        #adj_list = Enum.map(1..numNodes, fn i -> i end)
+        #adj_list -- [name]
+        [name]
       "line" ->
         cond do
           name == 1 ->
@@ -39,10 +40,12 @@ defmodule AdjacencyHelper do
     nodeList =
       case topology do
         "full" ->
-          Enum.map(1..numNodes, fn i -> i end)
+          []
+          #Enum.map(1..numNodes, fn i -> i end)
 
         "line" ->
-          Enum.map(1..numNodes, fn i -> i end)
+          []
+          #Enum.map(1..numNodes, fn i -> i end)
 
         "rand2D" ->
           generate_random_2D(numNodes,[])
@@ -70,7 +73,8 @@ defmodule AdjacencyHelper do
     if length(node_list) == numNodes do
       node_list
     else
-      new_node_list = Enum.uniq([ [:rand.uniform(10) / 10, :rand.uniform(10) / 10] | node_list])
+      #new_node_list = Enum.uniq([ [:rand.uniform(10) / 10, :rand.uniform(10) / 10] | node_list])
+      new_node_list = [ [:rand.uniform(), :rand.uniform()] | node_list]
       generate_random_2D(numNodes, new_node_list)
     end
   end
