@@ -71,14 +71,7 @@
     if count == 3 do
       #GenServer.cast(PushTheGossip.Convergence,{:i_heard_it, my_name})
       ###############
-      convergence_counter = :ets.update_counter(:convergence_counter, "count", {2,1})
-      if convergence_counter == numNodes do
-        {_,time_start} = Enum.at(:ets.lookup(:convergence_time, "start"),0)
-        IO.puts "Converged in= #{inspect (System.system_time(:millisecond) - time_start) } Milliseconds"
-        System.halt(1)
-      else
-        GenServer.cast(self(), {:send, {s, w}})
-      end
+      GenServer.call(PushTheGossip.Convergence, {:i_heard_it})
       ###############
       # if it has steady change i.e., when count =3
       # send rumor to someone and kill urself

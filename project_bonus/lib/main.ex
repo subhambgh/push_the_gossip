@@ -32,14 +32,14 @@ defmodule PushTheGossip.Main do
     timerT(numNodes,maxWaitTime,noOfNodesToFail)
   end
 
-   def timerT(numNodes,maxWaitTime,noOfNodesToFail) do
+   def timerT(orignalNumNodes,maxWaitTime,noOfNodesToFail) do
       state = GenServer.call(PushTheGossip.Convergence,{:getState},:infinity)
-      {time_start,numNodes,nodesConverged,_} = state
+      {time_start,numNodes,nodesConverged,_} = state #numNodes here is numNodes - nodesToFail
       if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
-        IO.puts("Nodes failed #{noOfNodesToFail} & Convergence % =  #{(nodesConverged/numNodes)*100}")
+        IO.puts("Nodes failed #{noOfNodesToFail} & Convergence % =  #{(nodesConverged/orignalNumNodes)*100}")
         System.halt(1)
       else
-        timerT(numNodes,maxWaitTime,noOfNodesToFail)
+        timerT(orignalNumNodes,maxWaitTime,noOfNodesToFail)
       end
     end
 
@@ -182,7 +182,7 @@ defmodule PushTheGossip.Main do
     pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
     IO.puts "Starting Algorithm.."
     GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
-    GenServer.cast(pidList, {:receive, "Infection!"})
+    GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
   end
 
   # ======================= Gossip Honeycomb End ================================#
