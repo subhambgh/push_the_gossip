@@ -62,16 +62,17 @@ defmodule Gossip do
 
   # this is the receive
   @impl true
-  def handle_cast({:receive, rumor}, {topology,numNodes,count,name,adj_list}) do
+  def handle_cast({:receive, _rumor}, {topology,numNodes,count,name,adj_list}) do
     #IO.puts("received by #{inspect name}")
     if count == 0 do
       #GenServer.cast(PushTheGossip.Convergence, {:i_heard_it,name})
       spawn_link(__MODULE__,:gossip,[topology,name,numNodes,adj_list])
       ###############
       convergence_counter = :ets.update_counter(:convergence_counter, "count", {2,1})
+      #IO.puts("#{inspect convergence_counter}")
       if convergence_counter == numNodes do
-        {_,time_start} = Enum.at(:ets.lookup(:convergence_time, "start"),0)
-        IO.puts "Convergence achieved in = #{inspect (System.system_time(:millisecond) - time_start) } Milliseconds"
+        time_start = elem(Enum.at(:ets.lookup(:convergence_time, "start"),0),1)
+        IO.puts "Converged in = #{inspect (System.system_time(:millisecond) - time_start) } Milliseconds"
         System.halt(1)
       end
       ###############

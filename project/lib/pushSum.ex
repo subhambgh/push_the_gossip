@@ -2,7 +2,7 @@
   use GenServer
 
   @node_registry_name :node_registry
-  @wait_time 20
+  @wait_time 200
 
   def start_link(process) do
     GenServer.start_link(__MODULE__, process, name: via_tuple(process.name))
@@ -42,13 +42,13 @@
       if randomNeighbourPid != nil && Process.alive?randomNeighbourPid  do
         GenServer.cast(randomNeighbourPid, {:receive, {received_s, received_s}})
       else
-        IO.write("")
+        #IO.write("")
         adj_list = List.delete(adj_list,randomNeighbour)
         GenServer.cast(self(),{:update_adjList,adj_list})
         GenServer.cast(self(), {:send, {received_s, received_w}})
       end
     else
-      #complecated scenerio
+      Registry.unregister(@node_registry_name, my_name)
     end
 
     {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
@@ -68,25 +68,28 @@
     change = abs(old_ratio - new_ratio)
     count = if change > :math.pow(10, -10), do: 0, else: count + 1
     #IO.puts("#{inspect my_name} #{change} #{count}")
-    if count >= 3 do
+    if count == 3 do
       #GenServer.cast(PushTheGossip.Convergence,{:i_heard_it, my_name})
       ###############
       convergence_counter = :ets.update_counter(:convergence_counter, "count", {2,1})
       if convergence_counter == numNodes do
         {_,time_start} = Enum.at(:ets.lookup(:convergence_time, "start"),0)
-        IO.puts "Convergence achieved in = #{inspect (System.system_time(:millisecond) - time_start) } Milliseconds"
+        IO.puts "Converged in= #{inspect (System.system_time(:millisecond) - time_start) } Milliseconds"
         System.halt(1)
+      else
+        GenServer.cast(self(), {:send, {s, w}})
       end
       ###############
       # if it has steady change i.e., when count =3
       # send rumor to someone and kill urself
       # implement it like, start any actor that hasn't received message for like 100 ms
+      #Registry.unregister(@node_registry_name, my_name)
       #Process.exit(self(), :normal)
       {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
     else
         GenServer.cast(self(), {:send, {s, w}})
         #################### starting periodic callback here #################
-        Process.send_after(self(), :tick, @wait_time)
+        #Process.send_after(self(), :tick, @wait_time)
         ######################################################################
       {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
     end
@@ -96,10 +99,11 @@
   def handle_cast({:update_adjList, updatedAdjList}, {topology,numNodes,s, w, count, my_name, adj_list}) do
     #{:noreply, {s, w, count, my_name, new_neighbours}}
     if updatedAdjList != [] || updatedAdjList != nil  do
-      {:noreply,{s, w,count,my_name,updatedAdjList}}
+      {:noreply,{topology,numNodes,s, w,count,my_name,updatedAdjList}}
     else
-      Process.exit(self(),:normal)
-      {:noreply,{s, w,count,my_name,adj_list}}
+      #Registry.unregister(@node_registry_name, my_name)
+      #Process.exit(self(),:normal)
+      {:noreply,{topology,numNodes,s, w,count,my_name,adj_list}}
     end
   end
 
@@ -107,11 +111,11 @@
   ## sends iff 1. it has received atleast once
   ############ &2. it hasn't received a message for a time = @wait_time
   ####################################################################
-  @impl true
-  def handle_info(:tick, {topology,numNodes,s, w, count, my_name, adj_list}) do
-    GenServer.cast(self(), {:send, {s, w}})
-    Process.send_after(self(), :tick, @wait_time)
-    {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
-  end
+  # @impl true
+  # def handle_info(:tick, {topology,numNodes,s, w, count, my_name, adj_list}) do
+  #   GenServer.cast(self(), {:send, {s, w}})
+  #   Process.send_after(self(), :tick, @wait_time)
+  #   {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
+  # end
 
 end

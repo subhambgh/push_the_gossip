@@ -1,6 +1,5 @@
 defmodule AdjacencyHelper do
   def getAdjList(topology,numNodes,name,nodeList) do
-    adj_list =
     case topology do
       "full" ->
         #adj_list = Enum.map(1..numNodes, fn i -> i end)
@@ -37,7 +36,6 @@ defmodule AdjacencyHelper do
   end
 
   def getNodeList(topology,numNodes) do
-    nodeList =
       case topology do
         "full" ->
           []
@@ -59,7 +57,7 @@ defmodule AdjacencyHelper do
       end
   end
 
-  def getNodeListFor3D(numNodes, rowcnt, rowcnt_square) do
+  def getNodeListFor3D(_numNodes, rowcnt, rowcnt_square) do
     for x <- 1..rowcnt,
         y <- 1..rowcnt,
         z <- 1..rowcnt,
@@ -84,12 +82,11 @@ defmodule AdjacencyHelper do
   end
 
   def generate_neighbours_for_random2D(nodeCoordinateList) do
-    map =
       nodeCoordinateList
-    |> Enum.map(fn pos ->
-      {pos, Enum.filter(List.delete(nodeCoordinateList, pos), &(distance(pos, &1) <= 0.1))}
-    end)
-    |> Map.new()
+      |> Enum.map(fn pos ->
+        {pos, Enum.filter(List.delete(nodeCoordinateList, pos), &(distance(pos, &1) <= 0.1))}
+      end)
+      |> Map.new()
   end
 
   # ======== Functions for Random 2D Neighbour Generation End =================#
@@ -163,7 +160,7 @@ defmodule AdjacencyHelper do
       # IO.inspect(node_neighbour_list)
     end
 
-    def generate3d(numNodes, rowcnt, rowcnt_square) do
+    def generate3d(_numNodes, rowcnt, rowcnt_square) do
       for x <- 1..rowcnt,
           y <- 1..rowcnt,
           z <- 1..rowcnt,
@@ -198,7 +195,6 @@ defmodule AdjacencyHelper do
     end
 
     def add_point_to_adjacency_map(point, adjacency_map) do
-      adjacency_map =
         cond do
           Map.has_key?(adjacency_map, point) == false -> Map.put(adjacency_map, point, [])
           true -> adjacency_map
@@ -286,7 +282,7 @@ defmodule AdjacencyHelper do
     end
 
     def random_honeycomb(adjacency_map) do
-      list_of_nodes = Enum.map(adjacency_map, fn {k, v} -> k end)
+      list_of_nodes = Enum.map(adjacency_map, fn {k, _v} -> k end)
 
       #IO.inspect(length(list_of_nodes))
 
