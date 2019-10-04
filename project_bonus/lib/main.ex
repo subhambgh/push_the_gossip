@@ -4,7 +4,7 @@ defmodule PushTheGossip.Main do
     {numNodes,""} = Integer.parse(Enum.at(args,0))
     topology = Enum.at(args,1)
     algorithm = Enum.at(args,2)
-    {failNodes,""}=
+    {noOfNodesToFail,""}=
       if Enum.at(args,3)== nil do
         {0,""}
       else
@@ -16,58 +16,70 @@ defmodule PushTheGossip.Main do
       else
         Integer.parse(Enum.at(args,4))
       end
-    start(numNodes, topology,algorithm,failNodes,maxWaitTime)
+    start(numNodes, topology,algorithm,noOfNodesToFail,maxWaitTime)
   end
 
-  def start(numNodes,topology,algorithm,failNodes,maxWaitTime) do
-
+  def start(numNodes,topology,algorithm,noOfNodesToFail,maxWaitTime) do
     case algorithm do
       "gossip" ->
-        gossip(numNodes,topology,failNodes,maxWaitTime)
+        gossip(numNodes,topology,noOfNodesToFail,maxWaitTime)
       "push-sum"->
-        pushSum(numNodes,topology,failNodes,maxWaitTime)
+        pushSum(numNodes,topology,noOfNodesToFail,maxWaitTime)
     end
   end
 
-  def infinite(maxWaitTime,failNodes) do
-    timer(maxWaitTime,failNodes)
+  def infiniteI(numNodes,maxWaitTime,noOfNodesToFail) do
+    timerT(numNodes,maxWaitTime,noOfNodesToFail)
   end
 
-  def timer(maxWaitTime,failNodes) do
-    {time_start,numNodes,nodesConverged,_} = GenServer.call(PushTheGossip.Convergence,{:getState})
-    #IO.puts "#{ (System.system_time(:millisecond) - time_start)}  #{maxWaitTime}  #{(System.system_time(:millisecond) - time_start) >= maxWaitTime}"
-    if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
-      IO.puts("Remaning Nodes #{numNodes-nodesConverged} & Convergence % =  #{(nodesConverged/numNodes)*100}")
-      System.halt(1)
-    else
-      timer(maxWaitTime,failNodes)
+   def timerT(numNodes,maxWaitTime,noOfNodesToFail) do
+      state = GenServer.call(PushTheGossip.Convergence,{:getState},:infinity)
+      {time_start,numNodes,nodesConverged,_} = state
+      if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
+        IO.puts("Nodes failed #{noOfNodesToFail} & Convergence % =  #{(nodesConverged/numNodes)*100}")
+        System.halt(1)
+      else
+        timerT(numNodes,maxWaitTime,noOfNodesToFail)
+      end
     end
-  end
+
+    def nodesToFail(pidList,noOfNodesToFail) do
+      Enum.map(1..noOfNodesToFail, fn _i ->
+        nodeToFailPid = Enum.random(pidList)
+        _=GenServer.call(nodeToFailPid,{:unregisterMe})
+        nodeToFailPid
+      end)
+    end
 
   # ======================= Gossip Start ================================#
   #topology are gossip_full, gossip_line
-  def gossip(numNodes,topology,failNodes,maxWaitTime) do
+  def gossip(numNodes,topology,noOfNodesToFail,maxWaitTime) do
     cond do
       Enum.member?(["full","line"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
         #IO.inspect nodeList
-        for i <- 1..numNodes do
-          {ok,pid} = Gossip.start_link(
-            %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: topology,nodeList: nodeList})
-          ref = Process.monitor(pid)
+        pidList =
+          for i <- 1..numNodes do
+          {_,pid} = Gossip.start_link(
+            %{name: i,numNodes: numNodes,topology: topology,nodeList: nodeList})
+          _ref = Process.monitor(pid)
+          pid
         end
-        GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
-        GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
-        infinite(maxWaitTime,failNodes)
+        IO.puts "Nodes created"
+        pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+        IO.puts "Starting Algorithm.."
+        GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+        GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
+        infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
       topology == "rand2D" ->
-        gossipRand2D(numNodes)
-        infinite(maxWaitTime,failNodes)
+        gossipRand2D(numNodes,noOfNodesToFail)
+        infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
       topology == "3Dtorus" ->
-        gossip3D(numNodes)
-        infinite(maxWaitTime,failNodes)
+        gossip3D(numNodes,noOfNodesToFail)
+        infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
       Enum.member?(["honeycomb","randhoneycomb"],topology) ->
-        gossipHoneycombAndRandomHoneyComb(numNodes,topology)
-        infinite(maxWaitTime,failNodes)
+        gossipHoneycombAndRandomHoneyComb(numNodes,topology,noOfNodesToFail)
+        infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
     end
   end
 
@@ -75,28 +87,32 @@ defmodule PushTheGossip.Main do
 
   # ===================== Push Sum Start ==============================#
 
-  def pushSum(numNodes,topology,failNodes,maxWaitTime) do
+  def pushSum(numNodes,topology,noOfNodesToFail,maxWaitTime) do
     cond do
       Enum.member?(["full","line"],topology) ->
         nodeList = AdjacencyHelper.getNodeList(topology,numNodes)
+        pidList =
       for i <- 1..numNodes do
-        {ok,pid} = PushSum.start_link(
-          %{name: Enum.at(nodeList,i-1),s: i,w: 1,numNodes: numNodes,topology: topology,nodeList: nodeList})
-        ref = Process.monitor(pid)
+        {_ok,pid} = PushSum.start_link(
+          %{name: i,s: i,w: 1,numNodes: numNodes,topology: topology,nodeList: nodeList})
+        _ref = Process.monitor(pid)
+        pid
       end
-      # initialize
-      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
-      GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
-      infinite(maxWaitTime,failNodes)
+      IO.puts "Nodes created"
+      pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+      IO.puts "Starting Algorithm.."
+      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+      GenServer.cast(Enum.random(pidList), {:receive, {0, 0}})
+      infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
     topology == "rand2D" ->
-      pushSumRand2D(numNodes)
-      infinite(maxWaitTime,failNodes)
+      pushSumRand2D(numNodes,noOfNodesToFail)
+      infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
     topology == "3Dtorus" ->
-      pushSum3D(numNodes)
-      infinite(maxWaitTime,failNodes)
+      pushSum3D(numNodes,noOfNodesToFail)
+      infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
     Enum.member?(["honeycomb","randhoneycomb"],topology) ->
-      pushSumHoneycombAndRandomHoneyComb(numNodes,topology)
-      infinite(maxWaitTime,failNodes)
+      pushSumHoneycombAndRandomHoneyComb(numNodes,topology,noOfNodesToFail)
+      infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
     end
   end
 
@@ -104,74 +120,94 @@ defmodule PushTheGossip.Main do
 
   #################### Random 2D, 3D and honeycomb implementations #####################
   # ======================= Gossip Random 2D Start ================================#
-  def gossipRand2D(numNodes) do
+  def gossipRand2D(numNodes,noOfNodesToFail) do
     nodeList = AdjacencyHelper.getNodeList("rand2D",numNodes)
     map_of_neighbours = AdjacencyHelper.generate_neighbours_for_random2D(nodeList)
-    for i <- 1..numNodes do
-      {ok,pid} = Gossip.start_link(
+    pidList =
+      for i <- 1..numNodes do
+      {_ok,pid} = Gossip.start_link(
         %{name: Enum.at(nodeList,i-1),numNodes: numNodes,topology: "rand2D",nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
-      ref = Process.monitor(pid)
+      _ref = Process.monitor(pid)
+      pid
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
-    GenServer.cast(Gossip.whereis(Enum.at(nodeList,round(numNodes/2)-1)), {:receive, "Infection!"})
+    IO.puts "Nodes created"
+    pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+    IO.puts "Starting Algorithm.."
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+    GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
   end
 
   # ======================= Gossip Random 2D End ================================#
   # ======================= Gossip 3D Start ================================#
 
-  def gossip3D(numNodes) do
+  def gossip3D(numNodes,noOfNodesToFail) do
     rowcnt = round(:math.pow(numNodes, 1 / 3))
     rowcnt_square = rowcnt * rowcnt
     perfect_cube = round(:math.pow(rowcnt,3))
-    if numNodes != perfect_cube do
-     #IO.puts("perfect_cube #{perfect_cube}!")
-    end
+    # if numNodes != perfect_cube do
+    #  #IO.puts("perfect_cube #{perfect_cube}!")
+    # end
     list_of_neighbours = AdjacencyHelper.getNodeListFor3D(numNodes, rowcnt, rowcnt_square)
+    pidList =
     for i <- 1..perfect_cube do
-      {ok,pid} = Gossip.start_link(
-        %{name: i,numNodes: numNodes,topology: "3Dtorus", nodeList: list_of_neighbours})
-      ref = Process.monitor(pid)
+      {_ok,pid} = Gossip.start_link(
+        %{name: i,numNodes: perfect_cube,topology: "3Dtorus", nodeList: list_of_neighbours})
+      _ref = Process.monitor(pid)
+      pid
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube] })
-    GenServer.cast(Gossip.whereis(round(numNodes/2)), {:receive, "Infection!"})
+    IO.puts "Nodes created"
+    pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+    IO.puts "Starting Algorithm.."
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube-noOfNodesToFail] })
+    GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
   end
 
   # ======================= Gossip 3D End ================================#
 
   # ======================= Gossip Honeycomb/Random Honeycomb Start ================================#
 
-  def gossipHoneycombAndRandomHoneyComb(numNodes,topology) do
+  def gossipHoneycombAndRandomHoneyComb(numNodes,topology,noOfNodesToFail) do
     map_of_neighbours = AdjacencyHelper.getNodeList(topology,numNodes)
-    nodeList = Enum.map(map_of_neighbours, fn {k, v} -> k end)
+    nodeList = Enum.map(map_of_neighbours, fn {k, _v} -> k end)
     numNodes = map_size(map_of_neighbours)
+    pidList =
     for i <- 1..numNodes do
-      {ok,pid} = Gossip.start_link(
+      {_ok,pid} = Gossip.start_link(
         %{name: [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)],
         numNodes: numNodes,topology: topology, nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
-      ref = Process.monitor(pid)
+      _ref = Process.monitor(pid)
+      pid
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
-    GenServer.cast(Gossip.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, "Infection!"})
+    IO.puts "Nodes created"
+    pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+    IO.puts "Starting Algorithm.."
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+    GenServer.cast(pidList, {:receive, "Infection!"})
   end
 
   # ======================= Gossip Honeycomb End ================================#
   # ======================= Push Sum Random 2D Start ================================#
-  def pushSumRand2D(numNodes) do
+  def pushSumRand2D(numNodes,noOfNodesToFail) do
     nodeList = AdjacencyHelper.getNodeList("rand2D",numNodes)
     map_of_neighbours = AdjacencyHelper.generate_neighbours_for_random2D(nodeList)
+    pidList =
     for i <- 1..numNodes do
-      {ok,pid} = PushSum.start_link(
+      {_ok,pid} = PushSum.start_link(
         %{name: Enum.at(nodeList,i-1),s: i,w: 1,numNodes: numNodes,topology: "rand2D",nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
-      ref = Process.monitor(pid)
+      _ref = Process.monitor(pid)
+      pid
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes]})
-    GenServer.cast(PushSum.whereis(Enum.at(nodeList,round(numNodes/2)-1)), {:receive, {0, 0}})
+    IO.puts "Nodes created"
+    pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+    IO.puts "Starting Algorithm.."
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+    GenServer.cast(pidList, {:receive, {0, 0}})
   end
 
   # ======================= Push Sum Random 2D End ================================#
   # ======================= Push Sum 3D Start ================================#
 
-  def pushSum3D(numNodes) do
+  def pushSum3D(numNodes,noOfNodesToFail) do
     rowcnt = round(:math.pow(numNodes, 1 / 3))
     rowcnt_square = rowcnt * rowcnt
     perfect_cube = round(:math.pow(rowcnt,3))
@@ -179,33 +215,42 @@ defmodule PushTheGossip.Main do
      #IO.puts("perfect_cube #{perfect_cube}!")
     end
     list_of_neighbours = AdjacencyHelper.getNodeListFor3D(numNodes, rowcnt, rowcnt_square)
+    pidList =
     for i <- 1..perfect_cube do
-      {ok,pid} = PushSum.start_link(
-        %{name: i,s: i,w: 1,numNodes: numNodes,topology: "3Dtorus", nodeList: list_of_neighbours})
-      ref = Process.monitor(pid)
+      {_ok,pid} = PushSum.start_link(
+        %{name: i,s: i,w: 1,numNodes: perfect_cube,topology: "3Dtorus", nodeList: list_of_neighbours})
+      _ref = Process.monitor(pid)
+      pid
     end
-    # initialize
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
-    GenServer.cast(PushSum.whereis(round(numNodes/2)), {:receive, {0, 0}})
+    IO.puts "Nodes created"
+    pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+    IO.puts "Starting Algorithm.."
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube-noOfNodesToFail] })
+    GenServer.cast(pidList, {:receive, {0, 0}})
   end
 
   # ======================= Push Sum 3D End ================================#
 
   # ======================= Push Sum Honeycomb Start ================================#
 
-  def pushSumHoneycombAndRandomHoneyComb(numNodes,topology) do
+  def pushSumHoneycombAndRandomHoneyComb(numNodes,topology,noOfNodesToFail) do
     map_of_neighbours = AdjacencyHelper.getNodeList(topology,numNodes)
-    nodeList = Enum.map(map_of_neighbours, fn {k, v} -> k end)
+    nodeList = Enum.map(map_of_neighbours, fn {k, _v} -> k end)
     numNodes = map_size(map_of_neighbours)
+    pidList =
     for i <- 1..numNodes do
-      {ok,pid} = PushSum.start_link(
+      {_ok,pid} = PushSum.start_link(
         %{name: [Enum.at(Enum.at(nodeList, i - 1), 0), Enum.at(Enum.at(nodeList, i - 1), 1)],
         s: i,w: 1,
         numNodes: numNodes,topology: topology, nodeList: nodeList,mapOfNeighbours: map_of_neighbours,numbering: i})
-      ref = Process.monitor(pid)
+      _ref = Process.monitor(pid)
+      pid
     end
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
-    GenServer.cast(PushSum.whereis([Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 0), Enum.at(Enum.at(nodeList, round(numNodes/2) - 1), 1)]), {:receive, {0, 0}})
+    IO.puts "Nodes created"
+    pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
+    IO.puts "Starting Algorithm.."
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+    GenServer.cast(Enum.random(pidList), {:receive, {0, 0}})
   end
 
   # ======================= Push Sum Honeycomb End ================================#

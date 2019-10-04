@@ -23,14 +23,15 @@ defmodule PushTheGossip.Convergence do
     {:noreply, {startTime,totalNodes, 0, []}}
   end
 
-  def handle_cast({:i_heard_it, name}, {time_start,  numNodes, count, remaningNodes}) do
+  def handle_call({:i_heard_it},_from, {time_start,  numNodes, count, remaningNodes}) do
     count = count+1
     #IO.puts "#{count}"
-    if count >= (0.7*numNodes) do
+    if count >= (1*numNodes) do
+      #IO.puts "#{inspect System.system_time(:millisecond)}"
       IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
       System.halt(1)
     end
-    {:noreply, {time_start,  numNodes, count, remaningNodes}}
+    {:reply,count, {time_start,  numNodes, count, remaningNodes}}
   end
 
   ############################### for push sum that take list of nodes #############################################
@@ -54,5 +55,14 @@ defmodule PushTheGossip.Convergence do
   #   end
   #   {:reply, 0, {time_start,  numNodes, count, remaningNodes}}
   # end
-
+  def handle_cast({:storeTask,task}, {time_start,  numNodes, count, remaningNodes}) do
+    remaningNodes = remaningNodes ++ task
+    #IO.puts "#{count}"
+    if count >= (1*numNodes) do
+      #IO.puts "#{inspect System.system_time(:millisecond)}"
+      IO.puts("Converged! Time = #{System.system_time(:millisecond) - time_start} ms")
+      System.halt(1)
+    end
+    {:noreply, {time_start,  numNodes, count, remaningNodes}}
+  end
 end

@@ -1,5 +1,5 @@
 defmodule Gossip do
-  use GenServer
+  use GenServer,restart: :temporary
 
   @node_registry_name :node_registry
 
@@ -17,6 +17,7 @@ defmodule Gossip do
       end
     end
 
+
   @impl true
   def init(process) do
     count=0
@@ -30,68 +31,90 @@ defmodule Gossip do
         AdjacencyHelper.getAdjListForRand2DAndHoneycombs(process.topology,process.name,process.nodeList,process.mapOfNeighbours,process.numbering)
       end
       #IO.puts "#{inspect process.name} => #{inspect adj_list}"
-    {:ok, {count, process.name,adj_list}}
+    {:ok, {process.topology,process.numNodes,count, process.name,adj_list}}
   end
 
-  def gossip(name,adj_list) do
+  @impl true
+  def handle_call({:unregisterMe},_from, {topology,numNodes,count,name,adj_list}) do
+      Registry.unregister(@node_registry_name,name)
+    {:reply,name,{topology,numNodes,count + 1,name,adj_list}}
+  end
+
+  def gossip(topology,name,numNodes,adj_list) do
     if adj_list !=nil && adj_list != []  do
-      randomNeighbour = Enum.random(adj_list)
+      randomNeighbour =
+      if(topology == "full") do
+        :rand.uniform(numNodes)
+      else
+        Enum.random(adj_list)
+      end
       randomNeighbourPid = whereis(randomNeighbour)
-      if randomNeighbourPid != nil && Process.alive?randomNeighbourPid  do
+      if randomNeighbourPid != nil do #&& Process.alive?randomNeighbourPid
         #IO.puts("#{inspect name} sending to #{inspect randomNeighbour}")
         GenServer.cast(randomNeighbourPid, {:receive, "rumor"})
-        gossip(name,adj_list)
+        gossip(topology,name,numNodes,adj_list)
       else
         #remove dead node from adj_list
         adj_list = List.delete(adj_list,randomNeighbour)
+        #IO.puts("#{inspect adj_list}")
         GenServer.cast(self(),{:update_adjList,adj_list})
-        gossip(name,adj_list)
+        gossip(topology,name,numNodes,adj_list)
       end
     else
       #has an empty adjacency list - meaning no neighbour
-      Process.exit(self(),:normal)
+      Registry.unregister(@node_registry_name, name)
+      #rocess.exit(self(),:normal)
     end
   end
 
   # this is the receive
   @impl true
-  def handle_cast({:receive, rumor}, {count,name,adj_list}) do
+  def handle_cast({:receive, _rumor}, {topology,numNodes,count,name,adj_list}) do
     #IO.puts("received by #{inspect name}")
     if count == 0 do
-      spawn_link(__MODULE__,:gossip,[name,adj_list])
-      GenServer.cast(PushTheGossip.Convergence, {:i_heard_it,name})
-      {:noreply, {count + 1,name,adj_list}}
+      #GenServer.cast(PushTheGossip.Convergence, {:i_heard_it,name})
+      spawn_link(__MODULE__,:gossip,[topology,name,numNodes,adj_list])
+      GenServer.call(PushTheGossip.Convergence, {:i_heard_it})
+      ###############
+      #convergence_counter = :ets.update_counter(:convergence_counter, "count", {2,1})
+      #per_conv = (convergence_counter/numNodes) * 100
+      #IO.puts("nodes converged : #{per_conv} in time=#{(System.system_time(:millisecond) - elem(Enum.at(:ets.lookup(:convergence_time, "start"),0),1))} ")
+      #if convergence_counter == numNodes do
+        #IO.puts "abc"
+      #   time_start = elem(Enum.at(:ets.lookup(:convergence_time, "start"),0),1)
+      #   IO.puts "Converged in = #{inspect (System.system_time(:millisecond) - time_start) } Milliseconds"
+      #   System.halt(1)
+      # end
+      ###############
+      {:noreply, {topology,numNodes,count + 1,name,adj_list}}
     else
       if count < 10 do
-        {:noreply, {count + 1,name,adj_list}}
+        {:noreply, {topology,numNodes,count + 1,name,adj_list}}
       else
-        Process.exit(self(),:normal)
-        {:noreply, {count + 1,name,adj_list}}
+        Registry.unregister(@node_registry_name, name)
+        #Process.exit(self(),:normal)
+        {:noreply, {topology,numNodes,count + 1,name,adj_list}}
       end
     end
   end
 
-
   #updates its adj_list
   @impl true
-  def handle_cast({:update_adjList,updatedAdjList},{count,name,adj_list}) do
+  def handle_cast({:update_adjList,updatedAdjList},{topology,numNodes,count,name,adj_list}) do
     #IO.puts("#{inspect updatedAdjList}")
     if updatedAdjList != [] || updatedAdjList != nil  do
-      {:noreply,{count,name,updatedAdjList}}
+      {:noreply,{topology,numNodes,count,name,updatedAdjList}}
     else
-      Process.exit(self(),:normal)
-      {:noreply,{count,name,adj_list}}
+      #Process.exit(self(),:normal)
+      {:noreply,{topology,numNodes,count,name,adj_list}}
     end
   end
 
-  @impl true
-  def handle_info(:kill_me_pls, state) do
-    # {:stop, reason, new_state}
-    {:stop, :normal, state}
-  end
+  # handle termination
+   @impl true
+   def terminate(reason, {topology,numNodes,count,name,adj_list}) do
+     #IO.puts("#{name} terminating..")
+     {topology,numNodes,count,name,adj_list}
+   end
 
-  @impl true
-  def terminate(_, _state) do
-    #IO.inspect("Look! I'm dead.")
-  end
 end

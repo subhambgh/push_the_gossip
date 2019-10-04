@@ -32,20 +32,7 @@ defmodule PushTheGossip.Main do
   end
 
   def infinite(numNodes,maxWaitTime,failNodes) do
-    timer(numNodes,maxWaitTime,failNodes)
-  end
-
-  def timer(numNodes,maxWaitTime,failNodes) do
-    # {time_start,numNodes,nodesConverged,_} = GenServer.call(PushTheGossip.Convergence,{:getState},:infinity)
-    # {_,time_start} = Enum.at(:ets.lookup(:convergence_time, "start"),0)
-    # nodesConverged = Enum.at(:ets.lookup(:convergence_counter, "count"),0)
-    # #IO.puts "#{ (System.system_time(:millisecond) - time_start)}  #{maxWaitTime}  #{(System.system_time(:millisecond) - time_start) >= maxWaitTime}"
-    #  if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
-    #    IO.puts("Remaning Nodes #{numNodes-nodesConverged} & Convergence % =  #{(nodesConverged/numNodes)*100}")
-    #    System.halt(1)
-    #  else
-        timer(numNodes,maxWaitTime,failNodes)
-    #  end
+    infinite(numNodes,maxWaitTime,failNodes)
   end
 
   # ======================= Gossip Start ================================#

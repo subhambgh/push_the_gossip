@@ -69,7 +69,7 @@ defmodule Gossip do
       spawn_link(__MODULE__,:gossip,[topology,name,numNodes,adj_list])
       ###############
       convergence_counter = :ets.update_counter(:convergence_counter, "count", {2,1})
-      #IO.puts("#{inspect convergence_counter}")
+      #IO.puts("Nodes Converged yet = #{(convergence_counter/numNodes)*100} in time=#{(System.system_time(:millisecond) - elem(Enum.at(:ets.lookup(:convergence_time, "start"),0),1)} ")
       if convergence_counter == numNodes do
         time_start = elem(Enum.at(:ets.lookup(:convergence_time, "start"),0),1)
         IO.puts "Converged in = #{inspect (System.system_time(:millisecond) - time_start) } Milliseconds"
