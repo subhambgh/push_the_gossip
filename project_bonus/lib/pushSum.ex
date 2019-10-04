@@ -2,7 +2,7 @@
   use GenServer
 
   @node_registry_name :node_registry
-  @wait_time 200
+  @wait_time 100
 
   def start_link(process) do
     GenServer.start_link(__MODULE__, process, name: via_tuple(process.name))
@@ -30,6 +30,12 @@
     {:ok, {process.topology,process.numNodes,process.s, process.w, count, process.name, adj_list}}
   end
 
+  @impl true
+  def handle_call({:unregisterMe},_from, {topology,numNodes,s, w, count, my_name, adj_list}) do
+      Registry.unregister(@node_registry_name,my_name)
+    {:reply,my_name,{topology,numNodes,s, w, count, my_name, adj_list}}
+  end
+
   def handle_cast({:send, {received_s, received_w}}, {topology,numNodes,s, w, count, my_name, adj_list}) do
     if adj_list !=nil && adj_list != []  do
       randomNeighbour =
@@ -39,7 +45,7 @@
         Enum.random(adj_list)
       end
       randomNeighbourPid = whereis(randomNeighbour)
-      if randomNeighbourPid != nil && Process.alive?randomNeighbourPid  do
+      if randomNeighbourPid != nil do
         GenServer.cast(randomNeighbourPid, {:receive, {received_s, received_s}})
       else
         #IO.write("")
@@ -76,13 +82,14 @@
       # if it has steady change i.e., when count =3
       # send rumor to someone and kill urself
       # implement it like, start any actor that hasn't received message for like 100 ms
-      #Registry.unregister(@node_registry_name, my_name)
+      #GenServer.cast(self(), {:send, {s, w}})
+      Registry.unregister(@node_registry_name, my_name)
       #Process.exit(self(), :normal)
       {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
     else
         GenServer.cast(self(), {:send, {s, w}})
         #################### starting periodic callback here #################
-        #Process.send_after(self(), :tick, @wait_time)
+        Process.send_after(self(), :tick, @wait_time)
         ######################################################################
       {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
     end
@@ -104,11 +111,11 @@
   ## sends iff 1. it has received atleast once
   ############ &2. it hasn't received a message for a time = @wait_time
   ####################################################################
-  # @impl true
-  # def handle_info(:tick, {topology,numNodes,s, w, count, my_name, adj_list}) do
-  #   GenServer.cast(self(), {:send, {s, w}})
-  #   Process.send_after(self(), :tick, @wait_time)
-  #   {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
-  # end
+  @impl true
+  def handle_info(:tick, {topology,numNodes,s, w, count, my_name, adj_list}) do
+    GenServer.cast(self(), {:send, {s, w}})
+    Process.send_after(self(), :tick, @wait_time)
+    {:noreply, {topology,numNodes,s, w, count, my_name, adj_list}}
+  end
 
 end

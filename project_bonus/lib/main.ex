@@ -36,7 +36,7 @@ defmodule PushTheGossip.Main do
       state = GenServer.call(PushTheGossip.Convergence,{:getState},:infinity)
       {time_start,numNodes,nodesConverged,_} = state #numNodes here is numNodes - nodesToFail
       if (System.system_time(:millisecond) - time_start) >= maxWaitTime && !(numNodes==nodesConverged) do
-        IO.puts("Nodes failed #{noOfNodesToFail} & Convergence % =  #{(nodesConverged/orignalNumNodes)*100}")
+        IO.puts("Nodes failed #{noOfNodesToFail} & Convergence =  #{round((nodesConverged/orignalNumNodes)*100)} %")
         System.halt(1)
       else
         timerT(orignalNumNodes,maxWaitTime,noOfNodesToFail)
@@ -68,7 +68,7 @@ defmodule PushTheGossip.Main do
         IO.puts "Nodes created"
         pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
         IO.puts "Starting Algorithm.."
-        GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+        GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
         GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
         infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
       topology == "rand2D" ->
@@ -101,7 +101,7 @@ defmodule PushTheGossip.Main do
       IO.puts "Nodes created"
       pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
       IO.puts "Starting Algorithm.."
-      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+      GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
       GenServer.cast(Enum.random(pidList), {:receive, {0, 0}})
       infiniteI(numNodes,maxWaitTime,noOfNodesToFail)
     topology == "rand2D" ->
@@ -133,7 +133,7 @@ defmodule PushTheGossip.Main do
     IO.puts "Nodes created"
     pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
     IO.puts "Starting Algorithm.."
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
   end
 
@@ -158,7 +158,7 @@ defmodule PushTheGossip.Main do
     IO.puts "Nodes created"
     pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
     IO.puts "Starting Algorithm.."
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube-noOfNodesToFail] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube] })
     GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
   end
 
@@ -181,7 +181,7 @@ defmodule PushTheGossip.Main do
     IO.puts "Nodes created"
     pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
     IO.puts "Starting Algorithm.."
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(Enum.random(pidList), {:receive, "Infection!"})
   end
 
@@ -200,8 +200,8 @@ defmodule PushTheGossip.Main do
     IO.puts "Nodes created"
     pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
     IO.puts "Starting Algorithm.."
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
-    GenServer.cast(pidList, {:receive, {0, 0}})
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
+    GenServer.cast(Enum.random(pidList), {:receive, {0, 0}})
   end
 
   # ======================= Push Sum Random 2D End ================================#
@@ -225,8 +225,8 @@ defmodule PushTheGossip.Main do
     IO.puts "Nodes created"
     pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
     IO.puts "Starting Algorithm.."
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube-noOfNodesToFail] })
-    GenServer.cast(pidList, {:receive, {0, 0}})
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), perfect_cube] })
+    GenServer.cast(Enum.random(pidList), {:receive, {0, 0}})
   end
 
   # ======================= Push Sum 3D End ================================#
@@ -249,7 +249,7 @@ defmodule PushTheGossip.Main do
     IO.puts "Nodes created"
     pidList = pidList -- nodesToFail(pidList,noOfNodesToFail)
     IO.puts "Starting Algorithm.."
-    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes-noOfNodesToFail] })
+    GenServer.cast(PushTheGossip.Convergence, {:time_start, [System.system_time(:millisecond), numNodes] })
     GenServer.cast(Enum.random(pidList), {:receive, {0, 0}})
   end
 
